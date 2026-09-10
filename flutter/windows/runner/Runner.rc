@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Purslane Tech Pte. Ltd." "\0"
-            VALUE "FileDescription", "RustDesk Remote Desktop" "\0"
+            VALUE "CompanyName", "Aproxia Project" "\0"
+            VALUE "FileDescription", "Aproxia Remote Access & Support" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "rustdesk" "\0"
-            VALUE "LegalCopyright", "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved." "\0"
-            VALUE "OriginalFilename", "rustdesk.exe" "\0"
-            VALUE "ProductName", "RustDesk" "\0"
+            VALUE "InternalName", "aproxia" "\0"
+            VALUE "LegalCopyright", "Copyright © 2026 Aproxia contributors. RustDesk components remain under their respective licenses." "\0"
+            VALUE "OriginalFilename", "aproxia.exe" "\0"
+            VALUE "ProductName", "Aproxia" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
