@@ -66,14 +66,24 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
   final RxBool showProgress = false.obs;
   final RxBool btnEnabled = true.obs;
 
-  final buttonStyle = OutlinedButton.styleFrom(
-    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  final buttonStyle = ButtonStyle(
+    textStyle: const MaterialStatePropertyAll(TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+    padding: const MaterialStatePropertyAll(EdgeInsets.symmetric(vertical: 14, horizontal: 16)),
+    foregroundColor: const MaterialStatePropertyAll(AproxiaBrand.text),
+    backgroundColor: MaterialStateProperty.resolveWith((states) =>
+        states.contains(MaterialState.hovered) ? const Color(0xFFE8F1FF) : const Color(0xFFF5F8FD)),
+    overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+    side: const MaterialStatePropertyAll(BorderSide(color: AproxiaBrand.border)),
+    shape: MaterialStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
   );
 
   _InstallPageBodyState() {
-    controller = TextEditingController(text: bind.installInstallPath());
+    final originalPath = bind.installInstallPath();
+    controller = TextEditingController(
+      text: originalPath
+          .replaceAll('RustDesk', 'Aproxia')
+          .replaceAll('rustdesk', 'Aproxia'),
+    );
     final installOptions = jsonDecode(bind.installInstallOptions());
     startmenu.value = installOptions['STARTMENUSHORTCUTS'] != '0';
     desktopicon.value = installOptions['DESKTOPSHORTCUTS'] != '0';
@@ -103,6 +113,7 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
   Widget option(RxBool value, String label) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
+      hoverColor: const Color(0xFFEFF5FF),
       onTap: () => btnEnabled.value ? value.value = !value.value : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
@@ -110,6 +121,7 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
           children: [
             Obx(() => Checkbox(
                   value: value.value,
+                  activeColor: AproxiaBrand.accent,
                   onChanged: (_) => btnEnabled.value ? value.value = !value.value : null,
                 )),
             const SizedBox(width: 8),
@@ -128,27 +140,27 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            constraints: const BoxConstraints(maxWidth: 760),
             child: Container(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(30),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AproxiaBrand.border),
-                boxShadow: [BoxShadow(color: AproxiaBrand.ink.withOpacity(.06), blurRadius: 24, offset: const Offset(0, 8))],
+                boxShadow: [BoxShadow(color: AproxiaBrand.ink.withOpacity(.07), blurRadius: 28, offset: const Offset(0, 9))],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                      AproxiaMark(size: 52),
-                      SizedBox(width: 16),
+                      AproxiaMark(size: 58),
+                      SizedBox(width: 18),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Instalează Aproxia', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+                            Text('Instalează Aproxia', style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800, color: AproxiaBrand.text)),
                             SizedBox(height: 4),
                             Text('Instalarea permite acces complet la distanță, inclusiv prin ferestrele Windows UAC.', style: TextStyle(fontSize: 13, color: AproxiaBrand.muted)),
                           ],
@@ -156,8 +168,8 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
-                  const Text('Locația instalării', style: TextStyle(fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+                  const SizedBox(height: 30),
+                  const Text('Locația instalării', style: TextStyle(fontWeight: FontWeight.w800, color: AproxiaBrand.text)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -165,6 +177,7 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
                         child: TextField(
                           controller: controller,
                           readOnly: true,
+                          style: const TextStyle(color: AproxiaBrand.text),
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: const Color(0xFFF8FBFF),
@@ -209,19 +222,22 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Row(
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
-                      Expanded(
+                      SizedBox(
+                        width: 150,
                         child: Obx(() => showProgress.value ? const LinearProgressIndicator() : const SizedBox.shrink()),
                       ),
-                      const SizedBox(width: 14),
                       Obx(() => OutlinedButton.icon(
                             icon: const Icon(Icons.close_rounded, size: 17),
                             label: const Text('Anulează'),
                             onPressed: btnEnabled.value ? () => windowManager.close() : null,
                             style: buttonStyle,
                           )),
-                      const SizedBox(width: 10),
                       Obx(() => ElevatedButton.icon(
                             icon: const Icon(Icons.download_done_rounded, size: 17),
                             label: const Text('Instalează Aproxia'),
@@ -229,7 +245,10 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AproxiaBrand.accent,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                              disabledBackgroundColor: const Color(0xFFB8C8E8),
+                              disabledForegroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           )),
@@ -240,7 +259,7 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
                               label: const Text('Rulează fără instalare'),
                               onPressed: btnEnabled.value ? () => bind.installRunWithoutInstall() : null,
                               style: buttonStyle,
-                            ).marginOnly(left: 10)),
+                            )),
                       ),
                     ],
                   ),
@@ -266,7 +285,7 @@ class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener 
   void selectInstallPath() async {
     final installPath = await FilePicker.platform.getDirectoryPath(initialDirectory: controller.text);
     if (installPath != null) {
-      controller.text = join(installPath, await bind.mainGetAppName());
+      controller.text = join(installPath, 'Aproxia');
     }
   }
 }
