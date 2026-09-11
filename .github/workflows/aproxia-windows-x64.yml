@@ -87,6 +87,14 @@ jobs:
           cd $(dirname $(dirname $(which flutter)))
           git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
 
+      - name: Flutter preflight
+        shell: powershell
+        run: |
+          Push-Location flutter
+          flutter pub get
+          flutter analyze lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
+          Pop-Location
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
         with:
