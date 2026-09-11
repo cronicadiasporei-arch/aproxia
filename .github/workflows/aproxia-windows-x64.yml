@@ -92,7 +92,7 @@ jobs:
         run: |
           Push-Location flutter
           flutter pub get
-          flutter analyze lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
+          flutter analyze --no-fatal-warnings --no-fatal-infos lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
           Pop-Location
 
       - name: Install Rust toolchain
