@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 abstract final class AproxiaBrand {
   static const String name = 'Aproxia';
-  static const String version = '0.2.1';
-  static const String channel = 'Preview';
-  static const String versionLabel = 'Aproxia v$version ($channel)';
+  static const String version = '1.0.0';
+  static const String channel = '';
+  static const String versionLabel = 'Aproxia v$version';
   static const String tagline = 'Calculatoarele tale. Oriunde.';
   static const String productDescription = 'Acces la distanță & suport';
 
@@ -25,9 +26,14 @@ abstract final class AproxiaBrand {
   static const double radiusSmall = 10;
   static const double radiusMedium = 14;
   static const double radiusLarge = 20;
+
+  static const String logoAsset = 'assets/aproxia/logo.svg';
+  static const String sidebarGlobeAsset = 'assets/aproxia/sidebar_globe.svg';
+  static const String worldMapAsset = 'assets/aproxia/world_map.svg';
 }
 
-/// Aproxia identity mark: a luminous A, orbital connection stroke and spark.
+/// Aproxia v1 identity mark. The same vector asset is used throughout the app
+/// so the sidebar, installer and future About page keep one consistent brand.
 class AproxiaMark extends StatelessWidget {
   const AproxiaMark({super.key, this.size = 64, this.showTile = true});
 
@@ -36,25 +42,33 @@ class AproxiaMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mark = CustomPaint(
-      size: Size.square(size),
-      painter: _AproxiaMarkPainter(),
+    final mark = SvgPicture.asset(
+      AproxiaBrand.logoAsset,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
     );
-    if (!showTile) return SizedBox.square(dimension: size, child: mark);
+
+    if (!showTile) {
+      return SizedBox.square(dimension: size, child: mark);
+    }
+
     return Container(
       width: size,
       height: size,
+      padding: EdgeInsets.all(size * .08),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * .25),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF64C8FF), Color(0xFF2B7CFF), Color(0xFF1558C8)],
+          colors: [Color(0xFF0D2F61), Color(0xFF0A2348)],
         ),
+        border: Border.all(color: const Color(0x334FC3FF)),
         boxShadow: [
           BoxShadow(
-            color: AproxiaBrand.accent.withOpacity(.30),
-            blurRadius: size * .28,
+            color: AproxiaBrand.accent.withOpacity(.26),
+            blurRadius: size * .30,
             offset: Offset(0, size * .08),
           ),
         ],
@@ -62,86 +76,4 @@ class AproxiaMark extends StatelessWidget {
       child: mark,
     );
   }
-}
-
-class _AproxiaMarkPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final rect = Rect.fromLTWH(0, 0, w, h);
-
-    final glow = Paint()
-      ..color = const Color(0xFF4DA6FF).withOpacity(.26)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * .08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * .19
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final aPath = Path()
-      ..moveTo(w * .21, h * .76)
-      ..lineTo(w * .46, h * .23)
-      ..quadraticBezierTo(w * .50, h * .14, w * .56, h * .25)
-      ..lineTo(w * .79, h * .76);
-    canvas.drawPath(aPath, glow);
-
-    final main = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF8AD9FF), Color(0xFF2B7CFF), Color(0xFF1558C8)],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * .15
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(aPath, main);
-
-    final highlight = Paint()
-      ..shader = const LinearGradient(
-        colors: [Colors.white, Color(0xFFBDEAFF)],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * .07
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(w * .39, h * .55),
-      Offset(w * .63, h * .55),
-      highlight,
-    );
-
-    final orbit = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFF70D3FF), Color(0xFF236FF0)],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * .045
-      ..strokeCap = StrokeCap.round;
-    final orbitPath = Path()
-      ..moveTo(w * .16, h * .72)
-      ..quadraticBezierTo(w * .48, h * .91, w * .86, h * .49);
-    canvas.drawPath(orbitPath, orbit);
-
-    final spark = Paint()..color = const Color(0xFF9EE7FF);
-    final c = Offset(w * .78, h * .17);
-    canvas.drawCircle(c, w * .025, spark);
-    final sparkLine = Paint()
-      ..color = const Color(0xFFD7F5FF)
-      ..strokeWidth = w * .02
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(c.dx, c.dy - w * .09),
-      Offset(c.dx, c.dy + w * .09),
-      sparkLine,
-    );
-    canvas.drawLine(
-      Offset(c.dx - w * .09, c.dy),
-      Offset(c.dx + w * .09, c.dy),
-      sparkLine,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
