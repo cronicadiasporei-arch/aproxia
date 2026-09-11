@@ -133,15 +133,34 @@ jobs:
           python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
           Move-Item ./flutter/build/windows/x64/runner/Release ./aproxia-windows-x64
 
-      - name: Add RustDeskTempTopMostWindow files
+      - name: Add remote-control helper files
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: topmostwindow-artifacts-x64
           path: ./aproxia-windows-x64
 
-      - name: Upload Aproxia Windows x64 artifact
+      - name: Build single-file Aproxia Portable
+        shell: powershell
+        run: |
+          python -m pip install -r .\libs\portable\requirements.txt
+          python .\libs\portable\generate.py -f .\aproxia-windows-x64 -o .\libs\portable -e aproxia.exe -t x86_64-pc-windows-msvc
+          Copy-Item .\libs\portable\target\x86_64-pc-windows-msvc\release\rustdesk-portable-packer.exe .\Aproxia-Portable-x64.exe
+          $hash = (Get-FileHash .\Aproxia-Portable-x64.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  Aproxia-Portable-x64.exe" | Out-File -Encoding ascii .\Aproxia-Portable-x64.sha256
+          Write-Host "Aproxia Portable SHA-256: $hash"
+
+      - name: Upload Aproxia Windows folder artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: aproxia-windows-x64-preview
           path: ./aproxia-windows-x64
+          if-no-files-found: error
+
+      - name: Upload Aproxia single-file portable artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: aproxia-portable-x64-preview
+          path: |
+            ./Aproxia-Portable-x64.exe
+            ./Aproxia-Portable-x64.sha256
           if-no-files-found: error
