@@ -112,7 +112,7 @@ settings = ROOT / 'flutter/lib/desktop/pages/desktop_setting_page.dart'
 s = settings.read_text(encoding='utf-8')
 s = s.replace("backgroundColor: const Color(0xFFF4F8FD),", "backgroundColor: Theme.of(context).colorScheme.background,")
 s = s.replace("color: const Color(0xFFF4F8FD),", "color: Theme.of(context).scaffoldBackgroundColor,")
-s = s.replace("            color: Colors.white,\n            shape: RoundedRectangleBorder", "            color: Theme.of(context).cardColor,\n            shape: RoundedRectangleBorder")
+s = s.replace("            color: Colors.white,\n            shape: RoundedRectangleBorder", "            color: null,\n            shape: RoundedRectangleBorder")
 settings.write_text(s, encoding='utf-8')
 print('[aproxia-v1.0.1-2] settings theme contrast repaired')
 
@@ -122,7 +122,7 @@ install = ROOT / 'flutter/lib/desktop/pages/install_page.dart'
 s = install.read_text(encoding='utf-8')
 s = s.replace(
     "onPressed: btnEnabled.value ? () => windowManager.close() : null,",
-    "onPressed: btnEnabled.value ? () async { await windowManager.hide(); } : null,",
+    "onPressed: btnEnabled.value ? () async { await windowManager.hide(); } : null,
 )
 s = s.replace(
     """                  Wrap(
