@@ -15,6 +15,8 @@ Prioritate imediată:
 - Corectarea ID-ului local astfel încât să fie generat, actualizat și afișat complet.
 - Verificarea funcțională a butoanelor: conectare remote, transfer fișiere, terminal, copiere ID/parolă, regenerare parolă, setări și instalare.
 - Eliminarea brandingului RustDesk din toate elementele vizibile utilizatorului: titluri, tooltip-uri, taskbar, iconițe, installer, texte și ferestre auxiliare.
+- Refacerea completă a paginii **Setări / Despre Aproxia**: toate meniurile în română, `Info su RustDesk` devine `Despre Aproxia`, identitatea vizuală Aproxia, versiunea Aproxia, build-ul Aproxia și linkurile Aproxia. Nu trebuie să rămână linkuri comerciale RustDesk/Purslane în interfața de produs.
+- Informațiile și atribuirile open-source obligatorii vor fi mutate/prezentate corect într-o zonă separată `Licențe open-source`, fără a pretinde că Aproxia este autorul codului terț.
 - Păstrarea licențelor și atribuirilor open-source obligatorii; referințele tehnice interne care sunt necesare upstream-ului nu trebuie eliminate dacă afectează mentenanța sau compatibilitatea.
 - Româna va fi limba implicită a produsului.
 - Înlocuirea iconițelor Windows/portable cu identitatea Aproxia finală.
@@ -157,27 +159,56 @@ Măsuri planificate:
 
 Checksum-ul SHA-256 al buildurilor este util pentru integritate, dar nu înlocuiește semnătura digitală Authenticode.
 
-## 10. Ordinea recomandată de implementare
+## 10. Versionare Aproxia și release-uri
+
+Aproxia va avea propria schemă de versiuni, independentă de numărul versiunii upstream RustDesk afișat utilizatorului.
+
+Vom folosi **Semantic Versioning** în forma `MAJOR.MINOR.PATCH`, plus etichete pentru buildurile de test.
+
+Exemple:
+
+- `Aproxia 0.1.0 Preview` — primele builduri Aproxia funcționale.
+- `0.2.0 Preview` — modificare importantă de UI sau funcționalitate nouă.
+- `0.2.1 Preview` — corecții de buguri fără funcționalitate majoră nouă.
+- `0.5.0 Beta` — produs suficient de stabil pentru testare extinsă.
+- `1.0.0` — prima versiune comercială/stabilă.
+- `1.1.0` — funcționalitate nouă compatibilă cu 1.x.
+- `1.1.1` — bugfix/hotfix.
+- `2.0.0` — schimbare majoră incompatibilă sau generație nouă a produsului.
+
+Reguli:
+
+- **PATCH** crește pentru bugfix-uri, corecții de text/UI și remedieri mici.
+- **MINOR** crește când adăugăm funcții importante: server Aproxia, conturi, licențe, address book, funcții Pro etc.
+- **MAJOR** crește pentru generații majore sau schimbări incompatibile.
+- Buildurile Preview/Beta vor afișa explicit stadiul lor.
+- Numărul versiunii trebuie actualizat centralizat și propagat automat în pagina `Despre Aproxia`, metadatele Windows, installer, executabilul portable și, ulterior, mecanismul de update.
+- Fiecare release trebuie să aibă changelog cu modificările principale.
+- Versiunea upstream RustDesk poate fi păstrată numai în documentația tehnică/licențele open-source dacă este necesar, nu ca versiune comercială Aproxia în interfața utilizatorului.
+
+## 11. Ordinea recomandată de implementare
 
 1. Finalizare UI Aproxia și branding Windows.
-2. Repararea tuturor funcțiilor clientului și test remote real.
-3. Stabilizarea `Aproxia-Portable-x64.exe` single-file.
-4. Audit complet al licențelor open-source.
-5. Instalarea infrastructurii self-hosted Aproxia.
-6. Configurarea clientului pentru serverele Aproxia.
-7. Backend de conturi și autentificare.
-8. Backend de licențe și entitlement-uri.
-9. Implementarea cotei Free de 60 minute/lună.
-10. Limitarea Free la o singură conexiune simultană.
-11. Implementarea Aproxia Pro.
-12. Integrarea plăților și webhook-urilor.
-13. UI pentru plan, minute rămase și upgrade.
-14. Code signing și proces controlat de release/update.
-15. Teste de securitate, abuz, concurență și recuperare după întreruperi.
-16. Lansare Preview/Beta controlată.
-17. După validare, lansare comercială.
+2. Refacerea completă a Setărilor și paginii `Despre Aproxia`; eliminarea textelor/legăturilor RustDesk vizibile și localizarea completă în română.
+3. Introducerea sistemului propriu de versionare Aproxia și propagarea versiunii în toate buildurile.
+4. Repararea tuturor funcțiilor clientului și test remote real.
+5. Stabilizarea `Aproxia-Portable-x64.exe` single-file.
+6. Audit complet al licențelor open-source.
+7. Instalarea infrastructurii self-hosted Aproxia.
+8. Configurarea clientului pentru serverele Aproxia.
+9. Backend de conturi și autentificare.
+10. Backend de licențe și entitlement-uri.
+11. Implementarea cotei Free de 60 minute/lună.
+12. Limitarea Free la o singură conexiune simultană.
+13. Implementarea Aproxia Pro.
+14. Integrarea plăților și webhook-urilor.
+15. UI pentru plan, minute rămase și upgrade.
+16. Code signing și proces controlat de release/update.
+17. Teste de securitate, abuz, concurență și recuperare după întreruperi.
+18. Lansare Preview/Beta controlată.
+19. După validare, lansare comercială.
 
-## 11. Decizii actuale
+## 12. Decizii actuale
 
 La data de **11 septembrie 2026**, direcția agreată este:
 
@@ -186,6 +217,8 @@ La data de **11 septembrie 2026**, direcția agreată este:
 - Dorim client portabil single-file și posibilitate de instalare ca serviciu.
 - Infrastructura finală va fi self-hosted Aproxia.
 - Interfața va avea identitate proprie Aproxia și limba română implicită.
+- Pagina de setări și `Despre` trebuie să fie Aproxia, nu RustDesk, iar atribuirea open-source va fi prezentată separat și legal corect.
+- Aproxia va avea propria versionare Semantic Versioning, cu Preview/Beta înainte de `1.0.0` stabil.
 - Model Free propus: **60 min/lună + 1 conexiune simultană**.
 - Model Pro propus: **4,99 €/lună**, cu limitele finale de conexiuni/dispozitive de stabilit.
 - Licențierea și limitele comerciale vor fi validate server-side.
