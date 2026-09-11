@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 abstract final class AproxiaBrand {
   static const String name = 'Aproxia';
-  static const String version = '0.2.0';
+  static const String version = '0.2.1';
   static const String channel = 'Preview';
   static const String versionLabel = 'Aproxia v$version ($channel)';
   static const String tagline = 'Calculatoarele tale. Oriunde.';
@@ -27,7 +27,7 @@ abstract final class AproxiaBrand {
   static const double radiusLarge = 20;
 }
 
-/// Aproxia v0.2 identity mark: a luminous A, orbital connection stroke and spark.
+/// Aproxia identity mark: a luminous A, orbital connection stroke and spark.
 class AproxiaMark extends StatelessWidget {
   const AproxiaMark({super.key, this.size = 64, this.showTile = true});
 
@@ -105,7 +105,11 @@ class _AproxiaMarkPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * .07
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(w * .39, h * .55), Offset(w * .63, h * .55), highlight);
+    canvas.drawLine(
+      Offset(w * .39, h * .55),
+      Offset(w * .63, h * .55),
+      highlight,
+    );
 
     final orbit = Paint()
       ..shader = const LinearGradient(
@@ -126,8 +130,16 @@ class _AproxiaMarkPainter extends CustomPainter {
       ..color = const Color(0xFFD7F5FF)
       ..strokeWidth = w * .02
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(c.dx, c.dy - w * .09), Offset(c.dx, c.dy + w * .09), sparkLine);
-    canvas.drawLine(Offset(c.dx - w * .09, c.dy), Offset(c.dx + w * .09, c.dy), sparkLine);
+    canvas.drawLine(
+      Offset(c.dx, c.dy - w * .09),
+      Offset(c.dx, c.dy + w * .09),
+      sparkLine,
+    );
+    canvas.drawLine(
+      Offset(c.dx - w * .09, c.dy),
+      Offset(c.dx + w * .09, c.dy),
+      sparkLine,
+    );
   }
 
   @override
