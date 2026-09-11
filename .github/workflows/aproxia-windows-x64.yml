@@ -87,12 +87,22 @@ jobs:
           cd $(dirname $(dirname $(which flutter)))
           git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
 
+      - name: Generate Aproxia Windows icon
+        shell: powershell
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          python .\.github\scripts\generate_aproxia_icon.py
+          if (!(Test-Path .\flutter\windows\runner\resources\app_icon.ico)) {
+            throw "Aproxia Windows icon was not generated"
+          }
+          Write-Host "Aproxia Windows icon generated successfully."
+
       - name: Flutter preflight
         shell: powershell
         run: |
           Push-Location flutter
           flutter pub get
-          flutter analyze --no-fatal-warnings --no-fatal-infos lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
+          flutter analyze --no-fatal-warnings --no-fatal-infos lib/main.dart lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
           Pop-Location
 
       - name: Install Rust toolchain
