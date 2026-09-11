@@ -1,20 +1,10 @@
-name: Aproxia Windows Build
+name: Aproxia Full Build (manual only)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - aproxia-v1
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
-      - "res/**"
-      - "appimage/**"
-      - "flatpak/**"
 
-# The upstream reusable build publishes SBOM/release artifacts and therefore
-# requests write access to repository contents. GitHub requires the caller to
-# grant at least the same permission level.
+# Keep the upstream full multi-platform build available for manual testing,
+# but do not run it on every Aproxia commit.
 permissions:
   contents: write
 
