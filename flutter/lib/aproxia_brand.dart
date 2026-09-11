@@ -23,8 +23,7 @@ abstract final class AproxiaBrand {
   static const double radiusLarge = 20;
 }
 
-/// Vector Aproxia mark used in the app shell and sidebar.
-/// The two linked strokes represent two endpoints joined through the network.
+/// Premium Aproxia identity mark used throughout the Windows UI.
 class AproxiaMark extends StatelessWidget {
   const AproxiaMark({super.key, this.size = 64, this.showTile = true});
 
@@ -46,13 +45,13 @@ class AproxiaMark extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF69C7FF), Color(0xFF2C7FF5), Color(0xFF1765D8)],
+          colors: [Color(0xFF73D1FF), Color(0xFF3478F6), Color(0xFF155CD6)],
         ),
         boxShadow: [
           BoxShadow(
-            color: AproxiaBrand.accent.withOpacity(.26),
-            blurRadius: size * .25,
-            offset: Offset(0, size * .08),
+            color: AproxiaBrand.accent.withOpacity(.30),
+            blurRadius: size * .30,
+            offset: Offset(0, size * .10),
           ),
         ],
       ),
@@ -64,35 +63,49 @@ class AproxiaMark extends StatelessWidget {
 class _AproxiaMarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final white = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .14
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final w = size.width;
+    final h = size.height;
 
-    final soft = Paint()
-      ..color = Colors.white.withOpacity(.74)
+    final main = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Colors.white, Color(0xFFDDEEFF)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h))
       ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * .14
+      ..strokeWidth = w * .13
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     final left = Path()
-      ..moveTo(size.width * .30, size.height * .72)
-      ..lineTo(size.width * .48, size.height * .30)
-      ..lineTo(size.width * .58, size.height * .50);
-    final right = Path()
-      ..moveTo(size.width * .70, size.height * .72)
-      ..lineTo(size.width * .52, size.height * .30)
-      ..lineTo(size.width * .42, size.height * .50);
+      ..moveTo(w * .24, h * .72)
+      ..lineTo(w * .47, h * .26)
+      ..quadraticBezierTo(w * .50, h * .20, w * .54, h * .28)
+      ..lineTo(w * .75, h * .72);
+    canvas.drawPath(left, main);
 
-    canvas.drawPath(left, white);
-    canvas.drawPath(right, soft);
+    final cross = Paint()
+      ..color = Colors.white.withOpacity(.92)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * .095
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * .38, h * .53), Offset(w * .62, h * .53), cross);
 
-    final node = Paint()..color = const Color(0xFF0B2D55);
-    canvas.drawCircle(Offset(size.width * .30, size.height * .72), size.width * .055, node);
-    canvas.drawCircle(Offset(size.width * .70, size.height * .72), size.width * .055, node);
+    final swoosh = Paint()
+      ..color = const Color(0xFF8BD8FF).withOpacity(.90)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * .055
+      ..strokeCap = StrokeCap.round;
+    final swooshPath = Path()
+      ..moveTo(w * .20, h * .73)
+      ..quadraticBezierTo(w * .50, h * .86, w * .82, h * .54);
+    canvas.drawPath(swooshPath, swoosh);
+
+    final sparkle = Paint()..color = const Color(0xFFBEE9FF);
+    final c = Offset(w * .76, h * .20);
+    canvas.drawCircle(c, w * .028, sparkle);
+    canvas.drawLine(Offset(c.dx, c.dy - w * .08), Offset(c.dx, c.dy + w * .08), Paint()..color = const Color(0xFFBEE9FF)..strokeWidth = w * .018..strokeCap = StrokeCap.round);
+    canvas.drawLine(Offset(c.dx - w * .08, c.dy), Offset(c.dx + w * .08, c.dy), Paint()..color = const Color(0xFFBEE9FF)..strokeWidth = w * .018..strokeCap = StrokeCap.round);
   }
 
   @override
