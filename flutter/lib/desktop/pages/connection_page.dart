@@ -102,14 +102,11 @@ class _ConnectionPageState extends State<ConnectionPage>
   final RxBool _idInputFocused = false.obs;
   final FocusNode _idFocusNode = FocusNode();
   final TextEditingController _idEditingController = TextEditingController();
-  final AllPeersLoader _allPeersLoader = AllPeersLoader();
-  Iterable<Peer> _autocompleteOpts = [];
   bool isWindowMinimized = false;
 
   @override
   void initState() {
     super.initState();
-    _allPeersLoader.init(setState);
     _idFocusNode.addListener(onFocusChanged);
     if (_idController.text.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -128,7 +125,6 @@ class _ConnectionPageState extends State<ConnectionPage>
   void dispose() {
     _idController.dispose();
     windowManager.removeListener(this);
-    _allPeersLoader.clear();
     _idFocusNode.removeListener(onFocusChanged);
     _idFocusNode.dispose();
     _idEditingController.dispose();
@@ -140,7 +136,6 @@ class _ConnectionPageState extends State<ConnectionPage>
   void onFocusChanged() {
     _idInputFocused.value = _idFocusNode.hasFocus;
     if (_idFocusNode.hasFocus) {
-      if (_allPeersLoader.needLoad) _allPeersLoader.getAllPeers();
       final len = _idEditingController.value.text.length;
       _idEditingController.selection = TextSelection(baseOffset: 0, extentOffset: len);
     }
@@ -246,16 +241,7 @@ class _ConnectionPageState extends State<ConnectionPage>
         const Row(children: [Icon(Icons.near_me_outlined, color: AproxiaBrand.accent), SizedBox(width: 10), Text('Conectează-te la un dispozitiv', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF102A52)))]),
         const SizedBox(height: 16),
         RawAutocomplete<Peer>(
-          optionsBuilder: (value) {
-            if (value.text.isEmpty) return const Iterable<Peer>.empty();
-            if (_allPeersLoader.peers.isEmpty && !_allPeersLoader.isPeersLoaded) return const Iterable<Peer>.empty();
-            var query = value.text.replaceAll(' ', '');
-            if (int.tryParse(query) == null) query = value.text;
-            final q = query.toLowerCase();
-            _autocompleteOpts = _allPeersLoader.peers.where((p) => p.id.toLowerCase().contains(q) || p.username.toLowerCase().contains(q) || p.hostname.toLowerCase().contains(q) || p.alias.toLowerCase().contains(q)).toList();
-            _allPeersLoader.queryOnlines(_autocompleteOpts);
-            return _autocompleteOpts;
-          },
+          optionsBuilder: (value) => const Iterable<Peer>.empty(),
           focusNode: _idFocusNode,
           textEditingController: _idEditingController,
           fieldViewBuilder: (context, controller, focus, submit) {
@@ -281,21 +267,8 @@ class _ConnectionPageState extends State<ConnectionPage>
               onSubmitted: (_) => onConnect(),
             ));
           },
-          onSelected: (peer) {
-            setState(() => _idController.id = peer.id);
-            FocusScope.of(context).unfocus();
-          },
-          optionsViewBuilder: (context, onSelected, options) => Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              elevation: 10,
-              borderRadius: BorderRadius.circular(10),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220, maxWidth: 420),
-                child: ListView(shrinkWrap: true, children: options.map((p) => ListTile(leading: const Icon(Icons.computer), title: Text(p.alias.isNotEmpty ? p.alias : p.hostname), subtitle: Text(p.id), onTap: () => onSelected(p))).toList()),
-              ),
-            ),
-          ),
+          onSelected: (_) {},
+          optionsViewBuilder: (context, onSelected, options) => const SizedBox.shrink(),
         ),
         const SizedBox(height: 13),
         SizedBox(
