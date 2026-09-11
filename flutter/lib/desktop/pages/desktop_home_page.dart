@@ -77,7 +77,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       ),
       child: Stack(
         children: [
-          const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _SidebarGlobePainter()))),
+          const Positioned.fill(
+            child: IgnorePointer(child: CustomPaint(painter: _SidebarGlobePainter())),
+          ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(15, 28, 15, 18),
@@ -98,14 +100,20 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: EdgeInsets.only(left: 20, bottom: 4),
-                        child: Text('Conectăm oamenii.', style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15)),
+                        child: Text(
+                          'Conectăm oamenii.',
+                          style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15),
+                        ),
                       ),
                     ),
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Padding(
                         padding: EdgeInsets.only(left: 20, bottom: 22),
-                        child: Text('Apropiem distanțele.', style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15)),
+                        child: Text(
+                          'Apropiem distanțele.',
+                          style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15),
+                        ),
                       ),
                     ),
                   ],
@@ -113,11 +121,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                     children: [
                       const Icon(Icons.language_rounded, color: Colors.white70, size: 18),
                       const SizedBox(width: 8),
-                      const Text(AproxiaBrand.versionLabel, style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      const Text(
+                        AproxiaBrand.versionLabel,
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
                       const Spacer(),
                       if (incoming)
                         IconButton(
                           tooltip: 'Ieșire',
+                          hoverColor: const Color(0xFF123F75),
+                          splashColor: Colors.transparent,
+                          highlightColor: Colors.transparent,
                           onPressed: () {
                             SystemNavigator.pop();
                             if (isWindows) exit(0);
@@ -140,30 +154,47 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       children: [
         AproxiaMark(size: 86, showTile: false),
         SizedBox(height: 7),
-        Text('Aproxia', style: TextStyle(color: Colors.white, fontSize: 31, fontWeight: FontWeight.w800, letterSpacing: -.7)),
+        Text(
+          'Aproxia',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 31,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.7,
+          ),
+        ),
         SizedBox(height: 2),
-        Text('Calculatoarele tale. Oriunde.', style: TextStyle(color: Color(0xFF9DE0FF), fontSize: 12.5)),
+        Text(
+          'Calculatoarele tale. Oriunde.',
+          style: TextStyle(color: Color(0xFF9DE0FF), fontSize: 12.5),
+        ),
       ],
     );
   }
 
   Widget _navItem(String key, IconData icon, String label) {
-    final selected = _selectedNav == key || (key == 'home' && _selectedNav == 'home');
+    final selected = _selectedNav == key;
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Material(
-        color: selected ? const Color(0xFF1C5DB0) : Colors.transparent,
+        color: selected ? const Color(0xFF1F66C2) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
+          hoverColor: selected ? const Color(0xFF1F66C2) : const Color(0xFF123F75),
+          focusColor: const Color(0xFF123F75),
+          splashColor: const Color(0x332F82E8),
+          highlightColor: Colors.transparent,
           onTap: () {
             if (key == 'settings') {
+              setState(() => _selectedNav = key);
               DesktopSettingPage.switch2page(SettingsTabKey.general);
               return;
             }
             setState(() => _selectedNav = key);
             if (key == 'home') {
-              ConnectionPage.requestSection('connect');
+              ConnectionPage.requestSection('home');
             } else {
               ConnectionPage.requestSection(key);
             }
@@ -175,7 +206,16 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 const SizedBox(width: 20),
                 Icon(icon, color: Colors.white, size: 25),
                 const SizedBox(width: 17),
-                Expanded(child: Text(label, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: selected ? FontWeight.w700 : FontWeight.w500))),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -276,7 +316,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           connToken: call.arguments['connToken'],
         );
       } else if (call.method == kWindowBumpMouse) {
-        return RdPlatformChannel.instance.bumpMouse(dx: call.arguments['dx'], dy: call.arguments['dy']);
+        return RdPlatformChannel.instance.bumpMouse(
+          dx: call.arguments['dx'],
+          dy: call.arguments['dy'],
+        );
       } else if (call.method == kWindowEventMoveTabToNewWindow) {
         final args = call.arguments.split(',');
         final windowId = int.tryParse(args[0]);
@@ -285,7 +328,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           windowType = WindowType.values.byName(args[3]);
         } catch (_) {}
         if (windowId != null && windowType != null) {
-          await rustDeskWinManager.moveTabToNewWindow(windowId, args[1], args[2], windowType);
+          await rustDeskWinManager.moveTabToNewWindow(
+            windowId,
+            args[1],
+            args[2],
+            windowType,
+          );
         }
       } else if (call.method == kWindowEventOpenMonitorSession) {
         final args = jsonDecode(call.arguments);
@@ -349,7 +397,12 @@ class _SidebarGlobePainter extends CustomPainter {
     final center = Offset(size.width * .20, size.height * .84);
     final radius = size.width * .67;
     final glow = Paint()
-      ..shader = RadialGradient(colors: [const Color(0xFF128CFF).withOpacity(.30), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: radius * 1.25));
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF128CFF).withOpacity(.30),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromCircle(center: center, radius: radius * 1.25));
     canvas.drawCircle(center, radius * 1.25, glow);
 
     final line = Paint()
@@ -358,13 +411,27 @@ class _SidebarGlobePainter extends CustomPainter {
       ..strokeWidth = 1.0;
     canvas.drawCircle(center, radius, line);
     for (var i = -2; i <= 2; i++) {
-      canvas.drawOval(Rect.fromCenter(center: center, width: radius * 2, height: radius * (0.35 + i.abs() * .18)), line);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: radius * 2,
+          height: radius * (0.35 + i.abs() * .18),
+        ),
+        line,
+      );
     }
     for (var i = -2; i <= 2; i++) {
       canvas.save();
       canvas.translate(center.dx, center.dy);
       canvas.rotate(i * .28);
-      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: radius * .75, height: radius * 2), line);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: radius * .75,
+          height: radius * 2,
+        ),
+        line,
+      );
       canvas.restore();
     }
     final arc = Paint()
@@ -373,7 +440,12 @@ class _SidebarGlobePainter extends CustomPainter {
       ..strokeWidth = 1.3;
     final path = Path()
       ..moveTo(size.width * .03, size.height * .78)
-      ..quadraticBezierTo(size.width * .60, size.height * .58, size.width * 1.05, size.height * .48);
+      ..quadraticBezierTo(
+        size.width * .60,
+        size.height * .58,
+        size.width * 1.05,
+        size.height * .48,
+      );
     canvas.drawPath(path, arc);
   }
 
@@ -386,12 +458,19 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
   final p1 = TextEditingController(text: '');
   var errMsg0 = '';
   var errMsg1 = '';
-  final localPasswordSet = (await bind.mainGetCommon(key: 'local-permanent-password-set')) == 'true';
-  final permanentPasswordSet = (await bind.mainGetCommon(key: 'permanent-password-set')) == 'true';
+  final localPasswordSet =
+      (await bind.mainGetCommon(key: 'local-permanent-password-set')) == 'true';
+  final permanentPasswordSet =
+      (await bind.mainGetCommon(key: 'permanent-password-set')) == 'true';
   final presetPassword = permanentPasswordSet && !localPasswordSet;
   var canSubmit = false;
   final RxString rxPass = ''.obs;
-  final rules = [DigitValidationRule(), UppercaseValidationRule(), LowercaseValidationRule(), MinCharactersValidationRule(8)];
+  final rules = [
+    DigitValidationRule(),
+    UppercaseValidationRule(),
+    LowercaseValidationRule(),
+    MinCharactersValidationRule(8),
+  ];
   final maxLength = bind.mainMaxEncryptLen();
   final statusTip = localPasswordSet
       ? 'Parola permanentă este setată local.'
@@ -445,7 +524,10 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
           children: [
             TextField(
               obscureText: true,
-              decoration: InputDecoration(labelText: 'Parolă', errorText: errMsg0.isNotEmpty ? errMsg0 : null),
+              decoration: InputDecoration(
+                labelText: 'Parolă',
+                errorText: errMsg0.isNotEmpty ? errMsg0 : null,
+              ),
               controller: p0,
               autofocus: true,
               onChanged: (value) {
@@ -460,7 +542,10 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
             PasswordStrengthIndicator(password: rxPass),
             TextField(
               obscureText: true,
-              decoration: InputDecoration(labelText: 'Confirmare', errorText: errMsg1.isNotEmpty ? errMsg1 : null),
+              decoration: InputDecoration(
+                labelText: 'Confirmare',
+                errorText: errMsg1.isNotEmpty ? errMsg1 : null,
+              ),
               controller: p1,
               onChanged: (_) {
                 setState(() {
@@ -470,12 +555,18 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
               },
               maxLength: maxLength,
             ).workaroundFreezeLinuxMint(),
-            if (statusTip.isNotEmpty) Text(statusTip, style: const TextStyle(fontSize: 13)),
+            if (statusTip.isNotEmpty)
+              Text(statusTip, style: const TextStyle(fontSize: 13)),
           ],
         ),
       ),
       actions: [
-        dialogButton('Anulează', icon: const Icon(Icons.close_rounded), onPressed: close, isOutline: true),
+        dialogButton(
+          'Anulează',
+          icon: const Icon(Icons.close_rounded),
+          onPressed: close,
+          isOutline: true,
+        ),
         if (localPasswordSet)
           dialogButton(
             'Elimină',
@@ -484,9 +575,15 @@ void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
               final ok = await bind.mainSetPermanentPasswordWithResult(password: '');
               if (ok) close();
             },
-            buttonStyle: const ButtonStyle(backgroundColor: MaterialStatePropertyAll(Colors.red)),
+            buttonStyle: const ButtonStyle(
+              backgroundColor: MaterialStatePropertyAll(Colors.red),
+            ),
           ),
-        dialogButton('Salvează', icon: const Icon(Icons.done_rounded), onPressed: canSubmit ? submit : null),
+        dialogButton(
+          'Salvează',
+          icon: const Icon(Icons.done_rounded),
+          onPressed: canSubmit ? submit : null,
+        ),
       ],
       onSubmit: canSubmit ? submit : null,
       onCancel: close,
