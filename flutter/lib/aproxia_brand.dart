@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 abstract final class AproxiaBrand {
   static const String name = 'Aproxia';
-  static const String version = '1.0.0';
+  static const String version = '1.0.1';
   static const String channel = '';
   static const String versionLabel = 'Aproxia v$version';
   static const String tagline = 'Calculatoarele tale. Oriunde.';
   static const String productDescription = 'Acces la distanță & suport';
 
-  static const Color ink = Color(0xFF081A36);
-  static const Color surface = Color(0xFF0D2A54);
-  static const Color surfaceElevated = Color(0xFF173E73);
+  static const Color ink = Color(0xFF061A35);
+  static const Color surface = Color(0xFF0B2B58);
+  static const Color surfaceElevated = Color(0xFF123F75);
   static const Color accent = Color(0xFF1769E8);
   static const Color accentBright = Color(0xFF2B7CFF);
   static const Color accentSoft = Color(0xFF72C8FF);
@@ -27,26 +26,26 @@ abstract final class AproxiaBrand {
   static const double radiusMedium = 14;
   static const double radiusLarge = 20;
 
-  static const String logoAsset = 'assets/aproxia/logo.svg';
-  static const String sidebarGlobeAsset = 'assets/aproxia/sidebar_globe.svg';
-  static const String worldMapAsset = 'assets/aproxia/world_map.svg';
+  static const String logoAsset = 'assets/aproxia/aproxia_logo.png';
+  static const String sidebarGlobeAsset = 'assets/aproxia/aproxia_sidebar_globe.png';
+  static const String worldMapAsset = 'assets/aproxia/aproxia_world_map.png';
 }
 
-/// Aproxia v1 identity mark. The same vector asset is used throughout the app
-/// so the sidebar, installer and future About page keep one consistent brand.
 class AproxiaMark extends StatelessWidget {
-  const AproxiaMark({super.key, this.size = 64, this.showTile = true});
+  const AproxiaMark({super.key, this.size = 64, this.showTile = false});
 
   final double size;
   final bool showTile;
 
   @override
   Widget build(BuildContext context) {
-    final mark = SvgPicture.asset(
+    final mark = Image.asset(
       AproxiaBrand.logoAsset,
       width: size,
       height: size,
       fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      gaplessPlayback: true,
     );
 
     if (!showTile) {
@@ -56,20 +55,20 @@ class AproxiaMark extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      padding: EdgeInsets.all(size * .08),
+      padding: EdgeInsets.all(size * .06),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * .25),
+        borderRadius: BorderRadius.circular(size * .24),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0D2F61), Color(0xFF0A2348)],
+          colors: [Color(0xFF0D2F61), Color(0xFF071D3C)],
         ),
         border: Border.all(color: const Color(0x334FC3FF)),
         boxShadow: [
           BoxShadow(
-            color: AproxiaBrand.accent.withOpacity(.26),
-            blurRadius: size * .30,
-            offset: Offset(0, size * .08),
+            color: AproxiaBrand.accent.withOpacity(.22),
+            blurRadius: size * .28,
+            offset: Offset(0, size * .07),
           ),
         ],
       ),
