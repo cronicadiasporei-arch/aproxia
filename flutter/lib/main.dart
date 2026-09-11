@@ -6,6 +6,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hbb/aproxia_brand.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/install_page.dart';
@@ -57,45 +58,28 @@ Future<void> main(List<String> args) async {
         ? <String, dynamic>{}
         : jsonDecode(args[2]) as Map<String, dynamic>;
     int type = argument['type'] ?? -1;
-    // to-do: No need to parse window id ?
-    // Because stateGlobal.windowId is a global value.
     argument['windowId'] = kWindowId;
     kWindowType = type.windowType;
     switch (kWindowType) {
       case WindowType.RemoteDesktop:
         desktopType = DesktopType.remote;
-        runMultiWindow(
-          argument,
-          kAppTypeDesktopRemote,
-        );
+        runMultiWindow(argument, kAppTypeDesktopRemote);
         break;
       case WindowType.FileTransfer:
         desktopType = DesktopType.fileTransfer;
-        runMultiWindow(
-          argument,
-          kAppTypeDesktopFileTransfer,
-        );
+        runMultiWindow(argument, kAppTypeDesktopFileTransfer);
         break;
       case WindowType.ViewCamera:
         desktopType = DesktopType.viewCamera;
-        runMultiWindow(
-          argument,
-          kAppTypeDesktopViewCamera,
-        );
+        runMultiWindow(argument, kAppTypeDesktopViewCamera);
         break;
       case WindowType.PortForward:
         desktopType = DesktopType.portForward;
-        runMultiWindow(
-          argument,
-          kAppTypeDesktopPortForward,
-        );
+        runMultiWindow(argument, kAppTypeDesktopPortForward);
         break;
       case WindowType.Terminal:
         desktopType = DesktopType.terminal;
-        runMultiWindow(
-          argument,
-          kAppTypeDesktopTerminal,
-        );
+        runMultiWindow(argument, kAppTypeDesktopTerminal);
       default:
         break;
     }
@@ -118,23 +102,15 @@ Future<void> main(List<String> args) async {
 }
 
 Future<void> initEnv(String appType) async {
-  // global shared preference
   await platformFFI.init(appType);
-  // global FFI, use this **ONLY** for global configuration
-  // for convenience, use global FFI on mobile platform
-  // focus on multi-ffi on desktop first
   await initGlobalFFI();
-  // await Firebase.initializeApp();
   _registerEventHandler();
-  // Update the system theme.
   updateSystemWindowTheme();
 }
 
 void runMainApp(bool startService) async {
-  // register uni links
   await initEnv(kAppTypeMain);
   checkUpdate();
-  // trigger connection status updater
   await bind.mainCheckConnectStatus();
   if (startService) {
     gFFI.serverModel.startService();
@@ -149,13 +125,12 @@ void runMainApp(bool startService) async {
         bind.mainGetBuildinOption(key: "main-window-always-on-top") == 'Y';
   }
 
-  // Set window option.
   WindowOptions windowOptions = getHiddenTitleBarWindowOptions(
-      isMainWindow: true, alwaysOnTop: alwaysOnTop);
+    isMainWindow: true,
+    alwaysOnTop: alwaysOnTop,
+  );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    // Restore the location of the main window before window hide or show.
     await restoreWindowPosition(WindowType.Main);
-    // Check the startup argument, if we successfully handle the argument, we keep the main window hidden.
     final handledByUniLinks = await initUniLinks();
     debugPrint("handled by uni links: $handledByUniLinks");
     if (handledByUniLinks || handleUriLink(cmdArgs: kBootArgs)) {
@@ -163,12 +138,11 @@ void runMainApp(bool startService) async {
     } else {
       windowManager.show();
       windowManager.focus();
-      // Move registration of active main window here to prevent from async visible check.
       rustDeskWinManager.registerActiveWindow(kWindowMainId);
     }
     windowManager.setOpacity(1);
-    windowManager.setTitle(getWindowName());
-    // Do not use `windowManager.setResizable()` here.
+    // Never expose the upstream product name in the Windows taskbar/thumbnail.
+    windowManager.setTitle(AproxiaBrand.name);
     setResizable(!bind.isIncomingOnly());
   });
 }
@@ -190,8 +164,7 @@ void runMultiWindow(
   String appType,
 ) async {
   await initEnv(appType);
-  final title = getWindowName();
-  // set prevent close to true, we handle close event manually
+  final title = AproxiaBrand.name;
   WindowController.fromWindowId(kWindowId!).setPreventClose(true);
   if (isMacOS) {
     disableWindowMovable(kWindowId);
@@ -200,49 +173,31 @@ void runMultiWindow(
   switch (appType) {
     case kAppTypeDesktopRemote:
       draggablePositions.load();
-      widget = DesktopRemoteScreen(
-        params: argument,
-      );
+      widget = DesktopRemoteScreen(params: argument);
       break;
     case kAppTypeDesktopFileTransfer:
-      widget = DesktopFileTransferScreen(
-        params: argument,
-      );
+      widget = DesktopFileTransferScreen(params: argument);
       break;
     case kAppTypeDesktopViewCamera:
       draggablePositions.load();
-      widget = DesktopViewCameraScreen(
-        params: argument,
-      );
+      widget = DesktopViewCameraScreen(params: argument);
       break;
     case kAppTypeDesktopPortForward:
-      widget = DesktopPortForwardScreen(
-        params: argument,
-      );
+      widget = DesktopPortForwardScreen(params: argument);
       break;
     case kAppTypeDesktopTerminal:
-      widget = DesktopTerminalScreen(
-        params: argument,
-      );
+      widget = DesktopTerminalScreen(params: argument);
       break;
     default:
-      // no such appType
       exit(0);
   }
-  _runApp(
-    title,
-    widget,
-    MyTheme.currentThemeMode(),
-  );
-  // we do not hide titlebar on win7 because of the frame overflow.
+  _runApp(title, widget, MyTheme.currentThemeMode());
   if (kUseCompatibleUiMode) {
     WindowController.fromWindowId(kWindowId!).showTitleBar(true);
   }
   switch (appType) {
     case kAppTypeDesktopRemote:
-      // If screen rect is set, the window will be moved to the target screen and then set fullscreen.
       if (argument['screen_rect'] == null) {
-        // display can be used to control the offset of the window.
         await restoreWindowPosition(
           WindowType.RemoteDesktop,
           windowId: kWindowId!,
@@ -252,40 +207,43 @@ void runMultiWindow(
       }
       break;
     case kAppTypeDesktopFileTransfer:
-      await restoreWindowPosition(WindowType.FileTransfer,
-          windowId: kWindowId!);
+      await restoreWindowPosition(
+        WindowType.FileTransfer,
+        windowId: kWindowId!,
+      );
       break;
     case kAppTypeDesktopViewCamera:
-      // If screen rect is set, the window will be moved to the target screen and then set fullscreen.
       if (argument['screen_rect'] == null) {
-        // display can be used to control the offset of the window.
         await restoreWindowPosition(
           WindowType.ViewCamera,
           windowId: kWindowId!,
           peerId: argument['id'] as String?,
-          // FIXME: fix display index.
           display: argument['display'] as int?,
         );
       }
       break;
     case kAppTypeDesktopPortForward:
-      await restoreWindowPosition(WindowType.PortForward, windowId: kWindowId!);
+      await restoreWindowPosition(
+        WindowType.PortForward,
+        windowId: kWindowId!,
+      );
       break;
     case kAppTypeDesktopTerminal:
-      await restoreWindowPosition(WindowType.Terminal, windowId: kWindowId!);
+      await restoreWindowPosition(
+        WindowType.Terminal,
+        windowId: kWindowId!,
+      );
       break;
     default:
-      // no such appType
       exit(0);
   }
-  // show window from hidden status
   WindowController.fromWindowId(kWindowId!).show();
 }
 
 void runConnectionManagerScreen() async {
   await initEnv(kAppTypeConnectionManager);
   _runApp(
-    '',
+    'Aproxia - Manager conexiuni',
     const DesktopServerPage(),
     MyTheme.currentThemeMode(),
   );
@@ -297,7 +255,6 @@ void runConnectionManagerScreen() async {
     await showCmWindow(isStartup: true);
   }
   setResizable(false);
-  // Start the uni links handler and redirect links to Native, not for Flutter.
   listenUniLinks(handleByFlutter: false);
 }
 
@@ -306,25 +263,31 @@ bool _isCmReadyToShow = false;
 showCmWindow({bool isStartup = false}) async {
   if (isStartup) {
     WindowOptions windowOptions = getHiddenTitleBarWindowOptions(
-        size: kConnectionManagerWindowSizeClosedChat, alwaysOnTop: true);
+      size: kConnectionManagerWindowSizeClosedChat,
+      alwaysOnTop: true,
+    );
     await windowManager.waitUntilReadyToShow(windowOptions, null);
     bind.mainHideDock();
     await Future.wait([
       windowManager.show(),
       windowManager.focus(),
-      windowManager.setOpacity(1)
+      windowManager.setOpacity(1),
     ]);
-    // ensure initial window size to be changed
     await windowManager.setSizeAlignment(
-        kConnectionManagerWindowSizeClosedChat, Alignment.topRight);
+      kConnectionManagerWindowSizeClosedChat,
+      Alignment.topRight,
+    );
+    windowManager.setTitle('Aproxia - Manager conexiuni');
     _isCmReadyToShow = true;
   } else if (_isCmReadyToShow) {
     if (await windowManager.getOpacity() != 1) {
       await windowManager.setOpacity(1);
       await windowManager.focus();
-      await windowManager.minimize(); //needed
+      await windowManager.minimize();
       await windowManager.setSizeAlignment(
-          kConnectionManagerWindowSizeClosedChat, Alignment.topRight);
+        kConnectionManagerWindowSizeClosedChat,
+        Alignment.topRight,
+      );
       windowOnTop(null);
     }
   }
@@ -333,7 +296,8 @@ showCmWindow({bool isStartup = false}) async {
 hideCmWindow({bool isStartup = false}) async {
   if (isStartup) {
     WindowOptions windowOptions = getHiddenTitleBarWindowOptions(
-        size: kConnectionManagerWindowSizeClosedChat);
+      size: kConnectionManagerWindowSizeClosedChat,
+    );
     windowManager.setOpacity(0);
     await windowManager.waitUntilReadyToShow(windowOptions, null);
     bind.mainHideDock();
@@ -356,55 +320,55 @@ void _runApp(
   ThemeMode themeMode,
 ) {
   final botToastBuilder = BotToastInit();
-  runApp(RefreshWrapper(
-    builder: (context) => GetMaterialApp(
-      navigatorKey: globalKey,
-      debugShowCheckedModeBanner: false,
-      title: title,
-      theme: MyTheme.lightTheme,
-      darkTheme: MyTheme.darkTheme,
-      themeMode: themeMode,
-      home: home,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: supportedLocales,
-      navigatorObservers: [
-        // FirebaseAnalyticsObserver(analytics: analytics),
-        BotToastNavigatorObserver(),
-      ],
-      builder: (context, child) {
-        child = _keepScaleBuilder(context, child);
-        child = botToastBuilder(context, child);
-        return child;
-      },
+  runApp(
+    RefreshWrapper(
+      builder: (context) => GetMaterialApp(
+        navigatorKey: globalKey,
+        debugShowCheckedModeBanner: false,
+        title: title,
+        theme: MyTheme.lightTheme,
+        darkTheme: MyTheme.darkTheme,
+        themeMode: themeMode,
+        home: home,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: supportedLocales,
+        navigatorObservers: [BotToastNavigatorObserver()],
+        builder: (context, child) {
+          child = _keepScaleBuilder(context, child);
+          child = botToastBuilder(context, child);
+          return child;
+        },
+      ),
     ),
-  ));
+  );
 }
 
 void runInstallPage() async {
   await windowManager.ensureInitialized();
   await initEnv(kAppTypeMain);
-  _runApp('', const InstallPage(), MyTheme.currentThemeMode());
+  _runApp('Aproxia - Instalare', const InstallPage(), MyTheme.currentThemeMode());
   WindowOptions windowOptions =
-      getHiddenTitleBarWindowOptions(size: Size(800, 600), center: true);
+      getHiddenTitleBarWindowOptions(size: const Size(800, 600), center: true);
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     windowManager.show();
     windowManager.focus();
     windowManager.setOpacity(1);
-    windowManager.setAlignment(Alignment.center); // ensure
+    windowManager.setTitle('Aproxia - Instalare');
+    windowManager.setAlignment(Alignment.center);
   });
 }
 
-WindowOptions getHiddenTitleBarWindowOptions(
-    {bool isMainWindow = false,
-    Size? size,
-    bool center = false,
-    bool? alwaysOnTop}) {
+WindowOptions getHiddenTitleBarWindowOptions({
+  bool isMainWindow = false,
+  Size? size,
+  bool center = false,
+  bool? alwaysOnTop,
+}) {
   var defaultTitleBarStyle = TitleBarStyle.hidden;
-  // we do not hide titlebar on win7 because of the frame overflow.
   if (kUseCompatibleUiMode) {
     defaultTitleBarStyle = TitleBarStyle.normal;
   }
@@ -434,14 +398,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       final systemIsDark =
           WidgetsBinding.instance.platformDispatcher.platformBrightness ==
               Brightness.dark;
-      final ThemeMode to;
-      if (systemIsDark) {
-        to = ThemeMode.dark;
-      } else {
-        to = ThemeMode.light;
-      }
+      final ThemeMode to = systemIsDark ? ThemeMode.dark : ThemeMode.light;
       Get.changeThemeMode(to);
-      // Synchronize the window theme of the system.
       updateSystemWindowTheme();
       if (desktopType == DesktopType.main) {
         bind.mainChangeTheme(dark: to.toShortString());
@@ -464,13 +422,6 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   void _updateOrientation() {
     if (isDesktop) return;
-
-    // Don't use `MediaQuery.of(context).orientation` in `didChangeMetrics()`,
-    // my test (Flutter 3.19.6, Android 14) is always the reverse value.
-    // https://github.com/flutter/flutter/issues/60899
-    // stateGlobal.isPortrait.value =
-    //     MediaQuery.of(context).orientation == Orientation.portrait;
-
     final orientation = View.of(context).physicalSize.aspectRatio > 1
         ? Orientation.landscape
         : Orientation.portrait;
@@ -479,13 +430,10 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // final analytics = FirebaseAnalytics.instance;
     final botToastBuilder = BotToastInit();
     return RefreshWrapper(builder: (context) {
       return MultiProvider(
         providers: [
-          // global configuration
-          // use session related FFI when in remote control or file transfer page
           ChangeNotifierProvider.value(value: gFFI.ffiModel),
           ChangeNotifierProvider.value(value: gFFI.imageModel),
           ChangeNotifierProvider.value(value: gFFI.cursorModel),
@@ -495,9 +443,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         child: GetMaterialApp(
           navigatorKey: globalKey,
           debugShowCheckedModeBanner: false,
-          title: isWeb
-              ? '${bind.mainGetAppNameSync()} Web Client V2 (Preview)'
-              : bind.mainGetAppNameSync(),
+          title: isWeb ? 'Aproxia Web Client V2 (Preview)' : AproxiaBrand.name,
           theme: MyTheme.lightTheme,
           darkTheme: MyTheme.darkTheme,
           themeMode: MyTheme.currentThemeMode(),
@@ -512,10 +458,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: supportedLocales,
-          navigatorObservers: [
-            // FirebaseAnalyticsObserver(analytics: analytics),
-            BotToastNavigatorObserver(),
-          ],
+          navigatorObservers: [BotToastNavigatorObserver()],
           builder: isAndroid
               ? (context, child) => AccessibilityListener(
                     child: MediaQuery(
@@ -567,17 +510,19 @@ _registerEventHandler() {
   }
   if (isAndroid) {
     platformFFI.registerEventHandler(
-        'android_needs_deploy', 'android_needs_deploy', (_) async {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDeployPromptDialog();
-      });
-    });
+      'android_needs_deploy',
+      'android_needs_deploy',
+      (_) async {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDeployPromptDialog();
+        });
+      },
+    );
   }
 }
 
 Widget keyListenerBuilder(BuildContext context, Widget? child) {
   return RawKeyboardListener(
-    // `skipTraversal: isWeb` is to fix "Bad state: RenderBox was not laid out: minified:aeL#c19e4"
     focusNode: FocusNode(skipTraversal: isWeb),
     child: child ?? Container(),
     onKey: (RawKeyEvent event) {
