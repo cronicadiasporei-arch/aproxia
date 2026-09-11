@@ -122,7 +122,7 @@ install = ROOT / 'flutter/lib/desktop/pages/install_page.dart'
 s = install.read_text(encoding='utf-8')
 s = s.replace(
     "onPressed: btnEnabled.value ? () => windowManager.close() : null,",
-    "onPressed: btnEnabled.value ? () async { await windowManager.hide(); } : null,
+    "onPressed: btnEnabled.value ? () async { await windowManager.hide(); } : null,",
 )
 s = s.replace(
     """                  Wrap(
