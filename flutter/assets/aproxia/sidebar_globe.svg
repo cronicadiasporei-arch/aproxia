@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 760">
+  <defs>
+    <radialGradient id="glow" cx="0.34" cy="0.54" r="0.7">
+      <stop offset="0" stop-color="#1D8FFF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#061A35" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arc" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#49C7FF"/>
+      <stop offset="1" stop-color="#0E6FFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="760" fill="url(#glow)"/>
+  <g transform="translate(120 475)" fill="none" stroke="#46B9FF" stroke-opacity="0.72">
+    <circle r="160" stroke-width="2"/>
+    <ellipse rx="160" ry="58"/><ellipse rx="160" ry="102"/><ellipse rx="78" ry="160"/><ellipse rx="118" ry="160"/>
+  </g>
+  <g fill="#9CEBFF">
+    <circle cx="72" cy="528" r="4"/><circle cx="153" cy="424" r="5"/><circle cx="213" cy="480" r="4"/><circle cx="257" cy="376" r="4"/><circle cx="99" cy="604" r="4"/>
+  </g>
+  <path d="M13 563C93 431 184 384 326 348" fill="none" stroke="url(#arc)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M29 610C131 541 218 522 391 510" fill="none" stroke="#7CD9FF" stroke-opacity="0.55" stroke-width="2"/>
+  <path d="M64 459C133 505 204 542 295 587" fill="none" stroke="#7CD9FF" stroke-opacity="0.4" stroke-width="2"/>
+</svg>
