@@ -8,7 +8,6 @@ import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:window_manager/window_manager.dart';
-// import 'package:flutter/services.dart';
 
 import '../../common/shared_state.dart';
 
@@ -18,19 +17,19 @@ class DesktopTabPage extends StatefulWidget {
   @override
   State<DesktopTabPage> createState() => _DesktopTabPageState();
 
-  static void onAddSetting(
-      {SettingsTabKey initialPage = SettingsTabKey.general}) {
+  static void onAddSetting({SettingsTabKey initialPage = SettingsTabKey.general}) {
     try {
-      DesktopTabController tabController = Get.find<DesktopTabController>();
+      final DesktopTabController tabController = Get.find<DesktopTabController>();
       tabController.add(TabInfo(
-          key: kTabLabelSettingPage,
-          label: kTabLabelSettingPage,
-          selectedIcon: Icons.build_sharp,
-          unselectedIcon: Icons.build_outlined,
-          page: DesktopSettingPage(
-            key: const ValueKey(kTabLabelSettingPage),
-            initialTabkey: initialPage,
-          )));
+        key: kTabLabelSettingPage,
+        label: 'Setări',
+        selectedIcon: Icons.tune_rounded,
+        unselectedIcon: Icons.tune_outlined,
+        page: DesktopSettingPage(
+          key: const ValueKey(kTabLabelSettingPage),
+          initialTabkey: initialPage,
+        ),
+      ));
     } catch (e) {
       debugPrintStack(label: '$e');
     }
@@ -44,14 +43,14 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
     RemoteCountState.init();
     Get.put<DesktopTabController>(tabController);
     tabController.add(TabInfo(
-        key: kTabLabelHomePage,
-        label: kTabLabelHomePage,
-        selectedIcon: Icons.home_sharp,
-        unselectedIcon: Icons.home_outlined,
-        closable: false,
-        page: DesktopHomePage(
-          key: const ValueKey(kTabLabelHomePage),
-        )));
+      key: kTabLabelHomePage,
+      label: 'Acasă',
+      selectedIcon: Icons.home_rounded,
+      unselectedIcon: Icons.home_outlined,
+      closable: false,
+      page: DesktopHomePage(key: const ValueKey(kTabLabelHomePage)),
+    ));
+
     if (bind.isIncomingOnly()) {
       tabController.onSelected = (key) {
         if (key == kTabLabelHomePage) {
@@ -66,46 +65,30 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    // HardwareKeyboard.instance.addHandler(_handleKeyEvent);
-  }
-
-  /*
-  bool _handleKeyEvent(KeyEvent event) {
-    if (!mouseIn && event is KeyDownEvent) {
-      print('key down: ${event.logicalKey}');
-      shouldBeBlocked(_block, canBeBlocked);
-    }
-    return false; // allow it to propagate
-  }
-  */
-
-  @override
   void dispose() {
-    // HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     Get.delete<DesktopTabController>();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final tabWidget = Container(
-        child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
-            body: DesktopTab(
-              controller: tabController,
-              tail: Offstage(
-                offstage: bind.isIncomingOnly() || bind.isDisableSettings(),
-                child: ActionIcon(
-                  message: 'Settings',
-                  icon: IconFont.menu,
-                  onTap: DesktopTabPage.onAddSetting,
-                  isClose: false,
-                ),
-              ),
-            )));
+    final tabWidget = Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: DesktopTab(
+        controller: tabController,
+        showLogo: false,
+        tail: Offstage(
+          offstage: bind.isIncomingOnly() || bind.isDisableSettings(),
+          child: ActionIcon(
+            message: 'Setări',
+            icon: IconFont.menu,
+            onTap: DesktopTabPage.onAddSetting,
+            isClose: false,
+          ),
+        ),
+      ),
+    );
+
     return isMacOS || kUseCompatibleUiMode
         ? tabWidget
         : Obx(
