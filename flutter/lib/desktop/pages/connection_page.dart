@@ -1,5 +1,3 @@
-// main window right pane
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -8,7 +6,6 @@ import 'package:flutter_hbb/aproxia_brand.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
 
@@ -27,7 +24,6 @@ class OnlineStatusWidget extends StatefulWidget {
 
 class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   final _svcStopped = Get.find<RxBool>(tag: 'stop-service');
-  final _svcIsUsingPublicServer = true.obs;
   Timer? _updateTimer;
 
   @override
@@ -46,27 +42,24 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
   Widget build(BuildContext context) {
     return Obx(() {
       final ready = !_svcStopped.value && stateGlobal.svcStatus.value == SvcStatus.ready;
-      final color = ready
-          ? AproxiaBrand.success
-          : stateGlobal.svcStatus.value == SvcStatus.connecting
-              ? AproxiaBrand.warning
-              : AproxiaBrand.danger;
+      final connecting = stateGlobal.svcStatus.value == SvcStatus.connecting;
+      final color = ready ? AproxiaBrand.success : connecting ? AproxiaBrand.warning : AproxiaBrand.danger;
       final label = _svcStopped.value
-          ? translate('Service is not running')
-          : stateGlobal.svcStatus.value == SvcStatus.connecting
-              ? translate('connecting_status')
+          ? 'Serviciu oprit'
+          : connecting
+              ? 'Se conectează...'
               : stateGlobal.svcStatus.value == SvcStatus.notReady
-                  ? translate('not_ready_status')
-                  : translate('Ready');
+                  ? 'Indisponibil'
+                  : 'Online';
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 9, height: 9, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 7),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AproxiaBrand.text)),
           if (_svcStopped.value) ...[
-            const SizedBox(width: 10),
-            InkWell(onTap: () => start_service(true), child: Text(translate('Start service'), style: const TextStyle(color: AproxiaBrand.accent))),
+            const SizedBox(width: 8),
+            InkWell(onTap: () => start_service(true), child: const Text('Pornește', style: TextStyle(color: AproxiaBrand.accent, fontWeight: FontWeight.w600))),
           ],
         ],
       );
@@ -82,7 +75,6 @@ class _OnlineStatusWidgetState extends State<OnlineStatusWidget> {
         : statusNum == 0
             ? SvcStatus.connecting
             : SvcStatus.notReady;
-    _svcIsUsingPublicServer.value = await bind.mainIsUsingPublicServer();
     try {
       stateGlobal.videoConnCount.value = status['video_conn_count'] as int;
     } catch (_) {}
@@ -170,26 +162,21 @@ class _ConnectionPageState extends State<ConnectionPage>
   Widget build(BuildContext context) {
     final isOutgoingOnly = bind.isOutgoingOnly();
     return Container(
-      color: const Color(0xFFF4F8FD),
+      color: AproxiaBrand.canvas,
       child: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+              padding: const EdgeInsets.fromLTRB(30, 26, 30, 22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHero(),
                   const SizedBox(height: 22),
-                  LayoutBuilder(builder: (context, c) {
-                    final narrow = c.maxWidth < 760;
-                    final connect = _buildQuickConnect(context);
-                    final security = _buildSecurityCard(context);
-                    return narrow
-                        ? Column(children: [connect, const SizedBox(height: 16), security])
-                        : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(flex: 3, child: connect), const SizedBox(width: 16), Expanded(flex: 2, child: security)]);
-                  }),
-                  const SizedBox(height: 18),
+                  _buildStatusStrip(),
+                  const SizedBox(height: 16),
+                  _buildQuickConnect(context),
+                  const SizedBox(height: 16),
                   _buildPeersSection(),
                 ],
               ),
@@ -197,9 +184,17 @@ class _ConnectionPageState extends State<ConnectionPage>
           ),
           if (!isOutgoingOnly)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFE2E8F0)))),
-              child: Row(children: [const Icon(Icons.shield_outlined, size: 18, color: AproxiaBrand.accent), const SizedBox(width: 8), const Text('Conexiune securizată', style: TextStyle(fontSize: 12, color: Color(0xFF52657A))), const Spacer(), OnlineStatusWidget()]),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 11),
+              decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: AproxiaBrand.border))),
+              child: Row(
+                children: const [
+                  Icon(Icons.shield_outlined, size: 17, color: AproxiaBrand.accent),
+                  SizedBox(width: 8),
+                  Text('Conexiune securizată', style: TextStyle(fontSize: 12, color: AproxiaBrand.muted)),
+                  Spacer(),
+                  OnlineStatusWidget(),
+                ],
+              ),
             ),
         ],
       ),
@@ -207,29 +202,60 @@ class _ConnectionPageState extends State<ConnectionPage>
   }
 
   Widget _buildHero() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-            Text('Acces la distanță. Fără limite.', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF0B2B5B), letterSpacing: -0.5)),
-            SizedBox(height: 5),
-            Text('Sigur. Rapid. Oriunde în lume.', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500, color: AproxiaBrand.accent)),
-          ]),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text(
+          'Acces la distanță, simplu și sigur.',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AproxiaBrand.text, letterSpacing: -.45),
         ),
-        const Text(AproxiaBrand.tagline, style: TextStyle(fontSize: 12, color: Color(0xFF66809E), fontStyle: FontStyle.italic)),
+        SizedBox(height: 5),
+        Text('Conectează-te la calculatoarele tale oriunde te-ai afla.', style: TextStyle(fontSize: 15, color: AproxiaBrand.muted)),
       ],
     );
   }
 
-  Widget _premiumCard({required Widget child}) {
+  Widget _buildStatusStrip() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F7FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD5E7FB)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.verified_user_outlined, color: AproxiaBrand.success, size: 19),
+          ),
+          const SizedBox(width: 11),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Aproxia este pregătit pentru conexiuni', style: TextStyle(fontWeight: FontWeight.w700, color: AproxiaBrand.text, fontSize: 14)),
+                SizedBox(height: 2),
+                Text('Sesiuni protejate, conexiune rapidă și suport pentru mai multe dispozitive.', style: TextStyle(color: AproxiaBrand.muted, fontSize: 12)),
+              ],
+            ),
+          ),
+          const OnlineStatusWidget(),
+        ],
+      ),
+    );
+  }
+
+  Widget _premiumCard({required Widget child, EdgeInsets padding = const EdgeInsets.all(20)}) {
+    return Container(
+      padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AproxiaBrand.radiusMedium),
-        border: Border.all(color: const Color(0xFFDDE7F2)),
-        boxShadow: [BoxShadow(color: const Color(0xFF0B2B5B).withOpacity(0.05), blurRadius: 22, offset: const Offset(0, 8))],
+        border: Border.all(color: AproxiaBrand.border),
+        boxShadow: [BoxShadow(color: AproxiaBrand.ink.withOpacity(.045), blurRadius: 20, offset: const Offset(0, 7))],
       ),
       child: child,
     );
@@ -237,110 +263,136 @@ class _ConnectionPageState extends State<ConnectionPage>
 
   Widget _buildQuickConnect(BuildContext context) {
     return _premiumCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Row(children: [Icon(Icons.near_me_outlined, color: AproxiaBrand.accent), SizedBox(width: 10), Text('Conectează-te la un dispozitiv', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF102A52)))]),
-        const SizedBox(height: 16),
-        RawAutocomplete<Peer>(
-          optionsBuilder: (value) => const Iterable<Peer>.empty(),
-          focusNode: _idFocusNode,
-          textEditingController: _idEditingController,
-          fieldViewBuilder: (context, controller, focus, submit) {
-            updateTextAndPreserveSelection(controller, _idController.text);
-            return Obx(() => TextField(
-              controller: controller,
-              focusNode: focus,
-              inputFormatters: [IDTextInputFormatter()],
-              keyboardType: TextInputType.visiblePassword,
-              autocorrect: false,
-              enableSuggestions: false,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: _idInputFocused.value ? null : 'Introdu ID-ul dispozitivului',
-                prefixIcon: const Icon(Icons.computer_outlined),
-                filled: true,
-                fillColor: const Color(0xFFF8FBFF),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: Color(0xFFD7E3F0))),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: Color(0xFFD7E3F0))),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: AproxiaBrand.accent, width: 1.5)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.near_me_outlined, color: AproxiaBrand.accent, size: 21),
+              SizedBox(width: 10),
+              Text('Conectare rapidă', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text('Introdu ID-ul computerului la care vrei să te conectezi.', style: TextStyle(fontSize: 12, color: AproxiaBrand.muted)),
+          const SizedBox(height: 15),
+          RawAutocomplete<Peer>(
+            optionsBuilder: (value) => const Iterable<Peer>.empty(),
+            focusNode: _idFocusNode,
+            textEditingController: _idEditingController,
+            fieldViewBuilder: (context, controller, focus, submit) {
+              updateTextAndPreserveSelection(controller, _idController.text);
+              return Obx(() => TextField(
+                    controller: controller,
+                    focusNode: focus,
+                    inputFormatters: [IDTextInputFormatter()],
+                    keyboardType: TextInputType.visiblePassword,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: AproxiaBrand.text),
+                    decoration: InputDecoration(
+                      hintText: _idInputFocused.value ? null : 'ID dispozitiv',
+                      hintStyle: const TextStyle(color: Color(0xFFA6B4C5)),
+                      prefixIcon: const Icon(Icons.computer_outlined, color: AproxiaBrand.accent),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FBFF),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 14),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: AproxiaBrand.border)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: AproxiaBrand.border)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(11), borderSide: const BorderSide(color: AproxiaBrand.accent, width: 1.4)),
+                    ),
+                    onChanged: (v) => _idController.id = v,
+                    onSubmitted: (_) => onConnect(),
+                  ));
+            },
+            onSelected: (_) {},
+            optionsViewBuilder: (context, onSelected, options) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 13),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: onConnect,
+              icon: const Icon(Icons.near_me_outlined, size: 18),
+              label: const Text('Conectează-te', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AproxiaBrand.accent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              onChanged: (v) => _idController.id = v,
-              onSubmitted: (_) => onConnect(),
-            ));
-          },
-          onSelected: (_) {},
-          optionsViewBuilder: (context, onSelected, options) => const SizedBox.shrink(),
-        ),
-        const SizedBox(height: 13),
-        SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: ElevatedButton.icon(
-            onPressed: onConnect,
-            icon: const Icon(Icons.near_me_outlined),
-            label: const Text('Conectează-te', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            style: ElevatedButton.styleFrom(backgroundColor: AproxiaBrand.accent, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            ),
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(child: _secondaryAction(Icons.folder_copy_outlined, 'Transfer fișiere', () => onConnect(isFileTransfer: true))),
+              const SizedBox(width: 10),
+              Expanded(child: _secondaryAction(Icons.terminal_rounded, 'Terminal', () => onConnect(isTerminal: true))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _secondaryAction(IconData icon, String label, VoidCallback action) {
+    return SizedBox(
+      height: 42,
+      child: Material(
+        color: const Color(0xFFF2F6FC),
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: action,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: AproxiaBrand.border)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 17, color: AproxiaBrand.text),
+                const SizedBox(width: 8),
+                Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AproxiaBrand.text, fontWeight: FontWeight.w600, fontSize: 13))),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: _actionButton(Icons.description_outlined, 'Transfer fișiere', () => onConnect(isFileTransfer: true))),
-          const SizedBox(width: 10),
-          Expanded(child: _actionButton(Icons.terminal_outlined, 'Terminal', () => onConnect(isTerminal: true))),
-        ]),
-      ]),
-    );
-  }
-
-  Widget _actionButton(IconData icon, String label, VoidCallback action) {
-    return OutlinedButton.icon(
-      onPressed: action,
-      icon: Icon(icon, size: 18),
-      label: Text(label, overflow: TextOverflow.ellipsis),
-      style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF163A67), padding: const EdgeInsets.symmetric(vertical: 13), side: const BorderSide(color: Color(0xFFD7E3F0)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-    );
-  }
-
-  Widget _buildSecurityCard(BuildContext context) {
-    return _premiumCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-        Row(children: [Icon(Icons.security_outlined, color: AproxiaBrand.success), SizedBox(width: 9), Text('Pregătit pentru conexiuni', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF102A52)))]),
-        SizedBox(height: 16),
-        _FeatureLine(Icons.lock_outline, 'Sesiuni protejate', 'Controlul accesului rămâne activ.'),
-        SizedBox(height: 13),
-        _FeatureLine(Icons.speed_outlined, 'Performanță ridicată', 'Motorul remote Aproxia optimizează conexiunea.'),
-        SizedBox(height: 13),
-        _FeatureLine(Icons.devices_outlined, 'Multi-dispozitiv', 'Deschide și gestionează mai multe sesiuni.'),
-      ]),
+      ),
     );
   }
 
   Widget _buildPeersSection() {
     return _premiumCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-        Row(children: [Icon(Icons.devices_other_outlined, color: AproxiaBrand.accent), SizedBox(width: 9), Text('Dispozitivele mele & recente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF102A52)))]),
-        SizedBox(height: 12),
-        SizedBox(height: 330, child: PeerTabPage()),
-      ]),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Row(
+            children: [
+              Icon(Icons.devices_other_outlined, color: AproxiaBrand.accent, size: 21),
+              SizedBox(width: 9),
+              Text('Dispozitive & recente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+            ],
+          ),
+          SizedBox(height: 5),
+          Text('Accesează rapid calculatoarele folosite recent, favoritele și agenda ta.', style: TextStyle(fontSize: 12, color: AproxiaBrand.muted)),
+          SizedBox(height: 12),
+          SizedBox(height: 250, child: PeerTabPage()),
+        ],
+      ),
     );
   }
 
   void onConnect({bool isFileTransfer = false, bool isViewCamera = false, bool isTerminal = false, bool isTcpTunneling = false}) {
-    connect(context, _idController.id, isFileTransfer: isFileTransfer, isViewCamera: isViewCamera, isTerminal: isTerminal, isTcpTunneling: isTcpTunneling);
-  }
-}
-
-class _FeatureLine extends StatelessWidget {
-  const _FeatureLine(this.icon, this.title, this.subtitle);
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Container(width: 34, height: 34, decoration: BoxDecoration(color: const Color(0xFFEAF3FF), borderRadius: BorderRadius.circular(9)), child: Icon(icon, size: 19, color: AproxiaBrand.accent)),
-      const SizedBox(width: 10),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF17365D))), const SizedBox(height: 2), Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7F96), height: 1.25))])),
-    ]);
+    connect(
+      context,
+      _idController.id,
+      isFileTransfer: isFileTransfer,
+      isViewCamera: isViewCamera,
+      isTerminal: isTerminal,
+      isTcpTunneling: isTcpTunneling,
+    );
   }
 }
