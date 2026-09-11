@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/aproxia_brand.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 
 class InstallPage extends StatefulWidget {
@@ -23,14 +23,13 @@ class _InstallPageState extends State<InstallPage> {
 
   _InstallPageState() {
     Get.put<DesktopTabController>(tabController);
-    const label = "install";
+    const label = 'Instalare Aproxia';
     tabController.add(TabInfo(
-        key: label,
-        label: label,
-        closable: false,
-        page: _InstallPageBody(
-          key: const ValueKey(label),
-        )));
+      key: label,
+      label: label,
+      closable: false,
+      page: _InstallPageBody(key: const ValueKey(label)),
+    ));
   }
 
   @override
@@ -44,10 +43,9 @@ class _InstallPageState extends State<InstallPage> {
     return DragToResizeArea(
       resizeEdgeSize: stateGlobal.resizeEdgeSize.value,
       enableResizeEdges: windowManagerEnableResizeEdges,
-      child: Container(
-        child: Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.background,
-            body: DesktopTab(controller: tabController)),
+      child: Scaffold(
+        backgroundColor: AproxiaBrand.canvas,
+        body: DesktopTab(controller: tabController, showLogo: false),
       ),
     );
   }
@@ -60,8 +58,7 @@ class _InstallPageBody extends StatefulWidget {
   State<_InstallPageBody> createState() => _InstallPageBodyState();
 }
 
-class _InstallPageBodyState extends State<_InstallPageBody>
-    with WindowListener {
+class _InstallPageBodyState extends State<_InstallPageBody> with WindowListener {
   late final TextEditingController controller;
   final RxBool startmenu = true.obs;
   final RxBool desktopicon = true.obs;
@@ -69,10 +66,10 @@ class _InstallPageBodyState extends State<_InstallPageBody>
   final RxBool showProgress = false.obs;
   final RxBool btnEnabled = true.obs;
 
-  // todo move to theme.
   final buttonStyle = OutlinedButton.styleFrom(
-    textStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
-    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 12),
+    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
   );
 
   _InstallPageBodyState() {
@@ -103,172 +100,173 @@ class _InstallPageBodyState extends State<_InstallPageBody>
     windowManager.close();
   }
 
-  InkWell Option(RxBool option, {String label = ''}) {
+  Widget option(RxBool value, String label) {
     return InkWell(
-      // todo mouseCursor: "SystemMouseCursors.forbidden" or no cursor on btnEnabled == false
-      borderRadius: BorderRadius.circular(6),
-      onTap: () => btnEnabled.value ? option.value = !option.value : null,
-      child: Row(
-        children: [
-          Obx(
-            () => Checkbox(
-              visualDensity: VisualDensity(horizontal: -4, vertical: -4),
-              value: option.value,
-              onChanged: (v) =>
-                  btnEnabled.value ? option.value = !option.value : null,
-            ).marginOnly(right: 8),
-          ),
-          Expanded(
-            child: Text(translate(label)),
-          ),
-        ],
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => btnEnabled.value ? value.value = !value.value : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Obx(() => Checkbox(
+                  value: value.value,
+                  onChanged: (_) => btnEnabled.value ? value.value = !value.value : null,
+                )),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label, style: const TextStyle(color: AproxiaBrand.text))),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final double em = 13;
-    final isDarkTheme = MyTheme.currentThemeMode() == ThemeMode.dark;
     return Scaffold(
-        backgroundColor: null,
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(translate('Installation'),
-                  style: Theme.of(context).textTheme.headlineMedium),
-              Row(
+      backgroundColor: AproxiaBrand.canvas,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AproxiaBrand.border),
+                boxShadow: [BoxShadow(color: AproxiaBrand.ink.withOpacity(.06), blurRadius: 24, offset: const Offset(0, 8))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${translate('Installation Path')}:')
-                      .marginOnly(right: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(0.75 * em),
-                      ),
-                    ).workaroundFreezeLinuxMint().marginOnly(right: 10),
-                  ),
-                  Obx(
-                    () => OutlinedButton.icon(
-                      icon: Icon(Icons.folder_outlined, size: 16),
-                      onPressed: btnEnabled.value ? selectInstallPath : null,
-                      style: buttonStyle,
-                      label: Text(translate('Change Path')),
-                    ),
-                  )
-                ],
-              ).marginSymmetric(vertical: 2 * em),
-              Option(startmenu, label: 'Create start menu shortcuts')
-                  .marginOnly(bottom: 7),
-              Option(desktopicon, label: 'Create desktop icon')
-                  .marginOnly(bottom: 7),
-              Option(printer, label: 'Install {$appName} Printer'),
-              Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDarkTheme
-                        ? Color.fromARGB(135, 87, 87, 90)
-                        : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey),
-                  ),
-                  child: Row(
+                  const Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 32)
-                          .marginOnly(right: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(translate('agreement_tip'))
-                              .marginOnly(bottom: em),
-                          InkWell(
-                            hoverColor: Colors.transparent,
-                            onTap: () => launchUrlString(
-                                'https://rustdesk.com/privacy.html'),
-                            child: Tooltip(
-                              message: 'https://rustdesk.com/privacy.html',
-                              child: Row(children: [
-                                Icon(Icons.launch_outlined, size: 16)
-                                    .marginOnly(right: 5),
-                                Text(
-                                  translate('End-user license agreement'),
-                                  style: const TextStyle(
-                                      decoration: TextDecoration.underline),
-                                )
-                              ]),
-                            ),
-                          ),
-                        ],
-                      )
+                      AproxiaMark(size: 52),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Instalează Aproxia', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+                            SizedBox(height: 4),
+                            Text('Instalarea permite acces complet la distanță, inclusiv prin ferestrele Windows UAC.', style: TextStyle(fontSize: 13, color: AproxiaBrand.muted)),
+                          ],
+                        ),
+                      ),
                     ],
-                  )).marginSymmetric(vertical: 2 * em),
-              Row(
-                children: [
-                  Expanded(
-                    // NOT use Offstage to wrap LinearProgressIndicator
-                    child: Obx(() => showProgress.value
-                        ? LinearProgressIndicator().marginOnly(right: 10)
-                        : Offstage()),
                   ),
-                  Obx(
-                    () => OutlinedButton.icon(
-                      icon: Icon(Icons.close_rounded, size: 16),
-                      label: Text(translate('Cancel')),
-                      onPressed:
-                          btnEnabled.value ? () => windowManager.close() : null,
-                      style: buttonStyle,
-                    ).marginOnly(right: 10),
+                  const SizedBox(height: 28),
+                  const Text('Locația instalării', style: TextStyle(fontWeight: FontWeight.w700, color: AproxiaBrand.text)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          readOnly: true,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF8FBFF),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AproxiaBrand.border)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AproxiaBrand.border)),
+                          ),
+                        ).workaroundFreezeLinuxMint(),
+                      ),
+                      const SizedBox(width: 10),
+                      Obx(() => OutlinedButton.icon(
+                            icon: const Icon(Icons.folder_outlined, size: 18),
+                            onPressed: btnEnabled.value ? selectInstallPath : null,
+                            style: buttonStyle,
+                            label: const Text('Schimbă'),
+                          )),
+                    ],
                   ),
-                  Obx(
-                    () => ElevatedButton.icon(
-                      icon: Icon(Icons.done_rounded, size: 16),
-                      label: Text(translate('Accept and Install')),
-                      onPressed: btnEnabled.value ? install : null,
-                      style: buttonStyle,
+                  const SizedBox(height: 18),
+                  option(startmenu, 'Creează scurtătură în meniul Start'),
+                  option(desktopicon, 'Creează scurtătură pe desktop'),
+                  option(printer, 'Instalează imprimanta virtuală Aproxia'),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F7FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD5E7FB)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: AproxiaBrand.accent, size: 22),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Prin instalare confirmi că dorești să rulezi Aproxia ca serviciu de sistem. Componentele open-source și licențele aferente rămân disponibile în pachetul și repository-ul proiectului.',
+                            style: TextStyle(fontSize: 12, height: 1.4, color: AproxiaBrand.muted),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Offstage(
-                    offstage: bind.installShowRunWithoutInstall(),
-                    child: Obx(
-                      () => OutlinedButton.icon(
-                        icon: Icon(Icons.screen_share_outlined, size: 16),
-                        label: Text(translate('Run without install')),
-                        onPressed: btnEnabled.value
-                            ? () => bind.installRunWithoutInstall()
-                            : null,
-                        style: buttonStyle,
-                      ).marginOnly(left: 10),
-                    ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Obx(() => showProgress.value ? const LinearProgressIndicator() : const SizedBox.shrink()),
+                      ),
+                      const SizedBox(width: 14),
+                      Obx(() => OutlinedButton.icon(
+                            icon: const Icon(Icons.close_rounded, size: 17),
+                            label: const Text('Anulează'),
+                            onPressed: btnEnabled.value ? () => windowManager.close() : null,
+                            style: buttonStyle,
+                          )),
+                      const SizedBox(width: 10),
+                      Obx(() => ElevatedButton.icon(
+                            icon: const Icon(Icons.download_done_rounded, size: 17),
+                            label: const Text('Instalează Aproxia'),
+                            onPressed: btnEnabled.value ? install : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AproxiaBrand.accent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          )),
+                      Offstage(
+                        offstage: bind.installShowRunWithoutInstall(),
+                        child: Obx(() => OutlinedButton.icon(
+                              icon: const Icon(Icons.screen_share_outlined, size: 17),
+                              label: const Text('Rulează fără instalare'),
+                              onPressed: btnEnabled.value ? () => bind.installRunWithoutInstall() : null,
+                              style: buttonStyle,
+                            ).marginOnly(left: 10)),
+                      ),
+                    ],
                   ),
                 ],
-              )
-            ],
-          ).paddingSymmetric(horizontal: 4 * em, vertical: 3 * em),
-        ));
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void install() {
-    do_install() {
-      btnEnabled.value = false;
-      showProgress.value = true;
-      String args = '';
-      if (startmenu.value) args += ' startmenu';
-      if (desktopicon.value) args += ' desktopicon';
-      if (printer.value) args += ' printer';
-      bind.installInstallMe(options: args, path: controller.text);
-    }
-
-    do_install();
+    btnEnabled.value = false;
+    showProgress.value = true;
+    String args = '';
+    if (startmenu.value) args += ' startmenu';
+    if (desktopicon.value) args += ' desktopicon';
+    if (printer.value) args += ' printer';
+    bind.installInstallMe(options: args, path: controller.text);
   }
 
   void selectInstallPath() async {
-    String? install_path = await FilePicker.platform
-        .getDirectoryPath(initialDirectory: controller.text);
-    if (install_path != null) {
-      controller.text = join(install_path, await bind.mainGetAppName());
+    final installPath = await FilePicker.platform.getDirectoryPath(initialDirectory: controller.text);
+    if (installPath != null) {
+      controller.text = join(installPath, await bind.mainGetAppName());
     }
   }
 }
