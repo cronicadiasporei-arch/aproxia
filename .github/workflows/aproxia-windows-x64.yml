@@ -91,6 +91,7 @@ jobs:
         shell: powershell
         run: |
           python .\.github\scripts\aproxia_v101_ui_patch.py
+          python .\.github\scripts\aproxia_v101_ui_patch2.py
 
       - name: Generate Aproxia Windows icon
         shell: powershell
@@ -107,7 +108,7 @@ jobs:
         run: |
           Push-Location flutter
           flutter pub get
-          flutter analyze --no-fatal-warnings --no-fatal-infos lib/main.dart lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/desktop_setting_page.dart lib/aproxia_brand.dart
+          flutter analyze --no-fatal-warnings --no-fatal-infos lib/main.dart lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/desktop_setting_page.dart lib/desktop/pages/install_page.dart lib/aproxia_brand.dart
           Pop-Location
 
       - name: Install Rust toolchain
