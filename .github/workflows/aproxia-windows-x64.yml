@@ -87,6 +87,11 @@ jobs:
           cd $(dirname $(dirname $(which flutter)))
           git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
 
+      - name: Apply Aproxia v1.0.1 premium UI
+        shell: powershell
+        run: |
+          python .\.github\scripts\aproxia_v101_ui_patch.py
+
       - name: Generate Aproxia Windows icon
         shell: powershell
         run: |
@@ -102,7 +107,7 @@ jobs:
         run: |
           Push-Location flutter
           flutter pub get
-          flutter analyze --no-fatal-warnings --no-fatal-infos lib/main.dart lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/aproxia_brand.dart
+          flutter analyze --no-fatal-warnings --no-fatal-infos lib/main.dart lib/desktop/pages/connection_page.dart lib/desktop/pages/desktop_home_page.dart lib/desktop/pages/desktop_setting_page.dart lib/aproxia_brand.dart
           Pop-Location
 
       - name: Install Rust toolchain
@@ -168,14 +173,14 @@ jobs:
       - name: Upload Aproxia Windows folder artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: aproxia-windows-x64-preview
+          name: aproxia-windows-x64-v1.0.1
           path: ./aproxia-windows-x64
           if-no-files-found: error
 
       - name: Upload Aproxia single-file portable artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: aproxia-portable-x64-preview
+          name: aproxia-portable-x64-v1.0.1
           path: |
             ./Aproxia-Portable-x64.exe
             ./Aproxia-Portable-x64.sha256
