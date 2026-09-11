@@ -6,8 +6,8 @@ on:
     branches:
       - aproxia-v1
     paths-ignore:
+      - "**/*.md"
       - "docs/**"
-      - "README.md"
       - "res/**"
       - "appimage/**"
       - "flatpak/**"
