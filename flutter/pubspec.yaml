@@ -6,7 +6,7 @@ description: Your Remote Desktop Software
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # Aproxia follows its own SemVer lifecycle; upstream component versions are tracked separately.
-version: 0.2.0+69
+version: 0.2.1+70
 
 environment:
   sdk: '^3.1.0'
@@ -133,6 +133,9 @@ flutter_icons:
   linux: true
   web:
     generate: true
+
+# For information on the generic Dart part of this file, see
+# following page: https://dart.dev/tools/pub.dev/packages-and-plugins/using-packages
 
 flutter:
   uses-material-design: true
