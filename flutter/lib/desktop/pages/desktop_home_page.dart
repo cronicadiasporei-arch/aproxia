@@ -6,19 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/aproxia_brand.dart';
 import 'package:flutter_hbb/common.dart';
-import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/desktop/pages/connection_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
-import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
-import 'package:flutter_hbb/models/server_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:flutter_hbb/utils/platform_channel.dart';
 import 'package:get/get.dart';
-import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
 
@@ -31,7 +27,6 @@ class DesktopHomePage extends StatefulWidget {
 
 class _DesktopHomePageState extends State<DesktopHomePage>
     with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
-  final _leftPaneScrollController = ScrollController();
   @override
   bool get wantKeepAlive => true;
 
@@ -43,9 +38,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsInputMonitoring = false;
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
-  final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
   final GlobalKey _childKey = GlobalKey();
+  String _selectedNav = 'home';
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +48,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final incoming = bind.isIncomingOnly();
     return _buildBlock(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          buildLeftPane(context),
-          if (!incoming) Expanded(child: buildRightPane(context)),
+          _buildSidebar(context, incoming: incoming),
+          if (!incoming) const Expanded(child: ConnectionPage()),
         ],
       ),
     );
@@ -69,389 +64,122 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         child: child,
       );
 
-  Widget buildLeftPane(BuildContext context) {
-    final incoming = bind.isIncomingOnly();
-    final outgoing = bind.isOutgoingOnly();
-    final children = <Widget>[
-      if (!outgoing) buildPresetPasswordWarning(),
-      _buildAproxiaBrand(),
-      if (!outgoing) buildIDBoard(context),
-      if (!outgoing) buildPasswordBoard(context),
-      if (!outgoing) _buildLocalActions(),
-      FutureBuilder<Widget>(
-        future: Future.value(Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
-        builder: (_, data) {
-          if (data.hasData) {
-            if (incoming && isInHomePage()) {
-              Future.delayed(const Duration(milliseconds: 300), _updateWindowSize);
-            }
-            return data.data!;
-          }
-          return const Offstage();
-        },
-      ),
-    ];
-
-    if (incoming) {
-      children.addAll([
-        const Divider(color: Colors.white12),
-        OnlineStatusWidget(onSvcStatusChanged: () {
-          if (isInHomePage()) {
-            Future.delayed(const Duration(milliseconds: 300), _updateWindowSize);
-          }
-        }).marginOnly(bottom: 6, right: 6),
-      ]);
-    }
-
-    return ChangeNotifierProvider.value(
-      value: gFFI.serverModel,
-      child: Container(
-        width: incoming ? 310 : 320,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D2A4E), Color(0xFF081A31)],
-          ),
+  Widget _buildSidebar(BuildContext context, {required bool incoming}) {
+    return Container(
+      key: _childKey,
+      width: incoming ? 310 : 308,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0B2B58), Color(0xFF061A35)],
         ),
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _leftPaneScrollController,
-                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
-                    child: Column(key: _childKey, children: children),
+      ),
+      child: Stack(
+        children: [
+          const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _SidebarGlobePainter()))),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(15, 28, 15, 18),
+              child: Column(
+                children: [
+                  _brandHeader(),
+                  const SizedBox(height: 34),
+                  _navItem('home', Icons.home_rounded, 'Acasă'),
+                  _navItem('connect', Icons.phonelink_rounded, 'Conectare'),
+                  _navItem('devices', Icons.desktop_windows_rounded, 'Dispozitivele mele'),
+                  _navItem('history', Icons.history_rounded, 'Istoric'),
+                  _navItem('agenda', Icons.group_outlined, 'Agendă'),
+                  const SizedBox(height: 8),
+                  _navItem('settings', Icons.settings_outlined, 'Setări'),
+                  const Spacer(),
+                  if (!incoming) ...[
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 20, bottom: 4),
+                        child: Text('Conectăm oamenii.', style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15)),
+                      ),
+                    ),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 20, bottom: 22),
+                        child: Text('Apropiem distanțele.', style: TextStyle(color: Color(0xFF8ED9FF), fontSize: 15)),
+                      ),
+                    ),
+                  ],
+                  Row(
+                    children: [
+                      const Icon(Icons.language_rounded, color: Colors.white70, size: 18),
+                      const SizedBox(width: 8),
+                      const Text(AproxiaBrand.versionLabel, style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      const Spacer(),
+                      if (incoming)
+                        IconButton(
+                          tooltip: 'Ieșire',
+                          onPressed: () {
+                            SystemNavigator.pop();
+                            if (isWindows) exit(0);
+                          },
+                          icon: const Icon(Icons.logout_rounded, color: Colors.white70, size: 19),
+                        ),
+                    ],
                   ),
-                ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _brandHeader() {
+    return const Column(
+      children: [
+        AproxiaMark(size: 86, showTile: false),
+        SizedBox(height: 7),
+        Text('Aproxia', style: TextStyle(color: Colors.white, fontSize: 31, fontWeight: FontWeight.w800, letterSpacing: -.7)),
+        SizedBox(height: 2),
+        Text('Calculatoarele tale. Oriunde.', style: TextStyle(color: Color(0xFF9DE0FF), fontSize: 12.5)),
+      ],
+    );
+  }
+
+  Widget _navItem(String key, IconData icon, String label) {
+    final selected = _selectedNav == key || (key == 'home' && _selectedNav == 'home');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Material(
+        color: selected ? const Color(0xFF1C5DB0) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () {
+            if (key == 'settings') {
+              DesktopSettingPage.switch2page(SettingsTabKey.general);
+              return;
+            }
+            setState(() => _selectedNav = key);
+            if (key == 'home') {
+              ConnectionPage.requestSection('connect');
+            } else {
+              ConnectionPage.requestSection(key);
+            }
+          },
+          child: SizedBox(
+            height: 56,
+            child: Row(
+              children: [
+                const SizedBox(width: 20),
+                Icon(icon, color: Colors.white, size: 25),
+                const SizedBox(width: 17),
+                Expanded(child: Text(label, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: selected ? FontWeight.w700 : FontWeight.w500))),
               ],
             ),
-            if (outgoing)
-              Positioned(
-                bottom: 14,
-                left: 18,
-                child: InkWell(
-                  onTap: () {
-                    if (DesktopSettingPage.tabKeys.isNotEmpty) {
-                      DesktopSettingPage.switch2page(DesktopSettingPage.tabKeys[0]);
-                    }
-                  },
-                  onHover: (v) => _editHover.value = v,
-                  child: Obx(() => Icon(
-                        Icons.settings_outlined,
-                        color: _editHover.value ? Colors.white : Colors.white60,
-                        size: 22,
-                      )),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAproxiaBrand() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        children: [
-          const AproxiaMark(size: 72),
-          const SizedBox(height: 13),
-          const Text(
-            AproxiaBrand.name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -.4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            AproxiaBrand.tagline,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF9BD8FF), fontSize: 12),
-          ),
-          const SizedBox(height: 20),
-          Container(height: 1, color: Colors.white12),
-        ],
-      ),
-    );
-  }
-
-  Widget _sidebarCard({required Widget child}) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(.065),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(.12)),
-        ),
-        child: child,
-      );
-
-  buildRightPane(BuildContext context) => const ConnectionPage();
-
-  buildIDBoard(BuildContext context) {
-    final model = gFFI.serverModel;
-    return _sidebarCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.desktop_windows_outlined, color: Color(0xFF8FD3FF), size: 18),
-              SizedBox(width: 8),
-              Text('Acest dispozitiv', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text('ID-UL TĂU', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
-          const SizedBox(height: 7),
-          Row(
-            children: [
-              Expanded(
-                child: SelectableText(
-                  model.serverId.text,
-                  maxLines: 1,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: .8),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _smallIconButton(
-                tooltip: 'Copiază ID-ul',
-                icon: Icons.copy_rounded,
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: model.serverId.text));
-                  showToast('ID copiat');
-                },
-              ),
-              _smallIconButton(
-                tooltip: 'Setări',
-                icon: Icons.more_horiz_rounded,
-                onPressed: DesktopTabPage.onAddSetting,
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).marginOnly(bottom: 12);
-  }
-
-  Widget _smallIconButton({required String tooltip, required IconData icon, required VoidCallback onPressed}) {
-    return IconButton(
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      onPressed: onPressed,
-      icon: Icon(icon, color: const Color(0xFF8FD3FF), size: 19),
-    );
-  }
-
-  buildPasswordBoard(BuildContext context) => ChangeNotifierProvider.value(
-        value: gFFI.serverModel,
-        child: Consumer<ServerModel>(builder: (context, model, child) => buildPasswordBoard2(context, model)),
-      );
-
-  buildPasswordBoard2(BuildContext context, ServerModel model) {
-    final showOneTime = model.approveMode != 'click' && model.verificationMethod != kUsePermanentPassword;
-    return _sidebarCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('PAROLĂ TEMPORARĂ', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1)),
-          const SizedBox(height: 7),
-          Row(
-            children: [
-              Expanded(
-                child: SelectableText(
-                  model.serverPasswd.text,
-                  maxLines: 1,
-                  style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w600, letterSpacing: 1.1),
-                ),
-              ),
-              if (showOneTime)
-                AnimatedRotationWidget(
-                  onPressed: () => bind.mainUpdateTemporaryPassword(),
-                  child: const Icon(Icons.refresh_rounded, color: Color(0xFF8FD3FF), size: 20),
-                ),
-              if (!bind.isDisableSettings())
-                _smallIconButton(
-                  tooltip: 'Schimbă parola',
-                  icon: Icons.edit_outlined,
-                  onPressed: () => DesktopSettingPage.switch2page(SettingsTabKey.safety),
-                ),
-            ],
-          ),
-        ],
-      ),
-    ).marginOnly(bottom: 12);
-  }
-
-  Widget _buildLocalActions() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              final m = gFFI.serverModel;
-              Clipboard.setData(ClipboardData(text: '${m.serverId.text} | ${m.serverPasswd.text}'));
-              showToast('Date de conectare copiate');
-            },
-            icon: const Icon(Icons.link_rounded, size: 18),
-            label: const Text('Copiază datele de conectare'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AproxiaBrand.accent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
           ),
         ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          height: 40,
-          child: OutlinedButton.icon(
-            onPressed: DesktopTabPage.onAddSetting,
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('Setări avansate'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white70,
-              side: const BorderSide(color: Colors.white24),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ),
-      ],
-    ).marginOnly(bottom: 8);
-  }
-
-  Widget buildHelpCards(String updateUrl) {
-    if (systemError.isNotEmpty) {
-      return _buildNoticeCard(
-        icon: Icons.warning_amber_rounded,
-        title: 'Aproxia necesită atenție',
-        content: systemError,
-      );
-    }
-
-    if (isWindows && !bind.isDisableInstallation()) {
-      if (!bind.mainIsInstalled()) {
-        return _buildNoticeCard(
-          icon: Icons.admin_panel_settings_outlined,
-          title: 'Acces complet la distanță',
-          content: 'Pentru control complet, inclusiv în ferestrele protejate de Windows (UAC), instalează Aproxia pe acest dispozitiv.',
-          buttonText: 'Instalează Aproxia',
-          onPressed: () async {
-            await rustDeskWinManager.closeAllSubWindows();
-            bind.mainGotoInstall();
-          },
-        );
-      }
-      if (bind.mainIsInstalledLowerVersion()) {
-        return _buildNoticeCard(
-          icon: Icons.system_update_alt_rounded,
-          title: 'Actualizare disponibilă',
-          content: 'Este instalată o versiune mai veche de Aproxia. Actualizează pentru stabilitate și securitate mai bune.',
-          buttonText: 'Actualizează Aproxia',
-          onPressed: () async {
-            await rustDeskWinManager.closeAllSubWindows();
-            bind.mainUpdateMe();
-          },
-        );
-      }
-    } else if (isMacOS) {
-      final outgoing = bind.isOutgoingOnly();
-      if (!(outgoing || bind.mainIsCanScreenRecording(prompt: false))) {
-        return _buildNoticeCard(
-          icon: Icons.screen_share_outlined,
-          title: 'Permisiune necesară',
-          content: 'Acordă acces pentru înregistrarea ecranului ca Aproxia să poată partaja desktopul.',
-          buttonText: 'Configurează',
-          onPressed: () {
-            bind.mainIsCanScreenRecording(prompt: true);
-            watchIsCanScreenRecording = true;
-          },
-        );
-      }
-      if (!outgoing && !bind.mainIsProcessTrusted(prompt: false)) {
-        return _buildNoticeCard(
-          icon: Icons.security_outlined,
-          title: 'Permisiune necesară',
-          content: 'Acordă permisiunea de accesibilitate pentru controlul complet al acestui Mac.',
-          buttonText: 'Configurează',
-          onPressed: () {
-            bind.mainIsProcessTrusted(prompt: true);
-            watchIsProcessTrust = true;
-          },
-        );
-      }
-    }
-
-    if (bind.isIncomingOnly()) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: OutlinedButton(
-          onPressed: () {
-            SystemNavigator.pop();
-            if (isWindows) exit(0);
-          },
-          child: const Text('Ieșire'),
-        ),
-      ).marginAll(14);
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildNoticeCard({
-    required IconData icon,
-    required String title,
-    required String content,
-    String? buttonText,
-    VoidCallback? onPressed,
-  }) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 14),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF17365D),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFF2F5E91)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: const Color(0xFF8FD3FF), size: 20),
-              const SizedBox(width: 9),
-              Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13))),
-            ],
-          ),
-          const SizedBox(height: 9),
-          Text(content, style: const TextStyle(color: Color(0xFFD8E6F5), fontSize: 12, height: 1.35)),
-          if (buttonText != null && onPressed != null) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onPressed,
-                icon: const Icon(Icons.download_done_rounded, size: 17),
-                label: Text(buttonText),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AproxiaBrand.ink,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                ),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -462,38 +190,38 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
-      if (systemError != error) {
+      if (systemError != error && mounted) {
         systemError = error;
         setState(() {});
       }
       final v = await mainGetBoolOption(kOptionStopService);
       if (v != svcStopped.value) {
         svcStopped.value = v;
-        setState(() {});
+        if (mounted) setState(() {});
       }
       if (watchIsCanScreenRecording && bind.mainIsCanScreenRecording(prompt: false)) {
         watchIsCanScreenRecording = false;
-        setState(() {});
+        if (mounted) setState(() {});
       }
       if (watchIsProcessTrust && bind.mainIsProcessTrusted(prompt: false)) {
         watchIsProcessTrust = false;
-        setState(() {});
+        if (mounted) setState(() {});
       }
       if (watchIsInputMonitoring && bind.mainIsCanInputMonitoring(prompt: false)) {
         watchIsInputMonitoring = false;
-        setState(() {});
+        if (mounted) setState(() {});
       }
       if (watchIsCanRecordAudio) {
         if (isMacOS) {
           Future.microtask(() async {
             if ((await osxCanRecordAudio() == PermissionAuthorizeType.authorized)) {
               watchIsCanRecordAudio = false;
-              setState(() {});
+              if (mounted) setState(() {});
             }
           });
         } else {
           watchIsCanRecordAudio = false;
-          setState(() {});
+          if (mounted) setState(() {});
         }
       }
     });
@@ -611,6 +339,46 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       shouldBeBlocked(_block, canBeBlocked);
     }
   }
+}
+
+class _SidebarGlobePainter extends CustomPainter {
+  const _SidebarGlobePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width * .20, size.height * .84);
+    final radius = size.width * .67;
+    final glow = Paint()
+      ..shader = RadialGradient(colors: [const Color(0xFF128CFF).withOpacity(.30), Colors.transparent]).createShader(Rect.fromCircle(center: center, radius: radius * 1.25));
+    canvas.drawCircle(center, radius * 1.25, glow);
+
+    final line = Paint()
+      ..color = const Color(0xFF42B5FF).withOpacity(.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(center, radius, line);
+    for (var i = -2; i <= 2; i++) {
+      canvas.drawOval(Rect.fromCenter(center: center, width: radius * 2, height: radius * (0.35 + i.abs() * .18)), line);
+    }
+    for (var i = -2; i <= 2; i++) {
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(i * .28);
+      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: radius * .75, height: radius * 2), line);
+      canvas.restore();
+    }
+    final arc = Paint()
+      ..color = const Color(0xFF8DDCFF).withOpacity(.72)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3;
+    final path = Path()
+      ..moveTo(size.width * .03, size.height * .78)
+      ..quadraticBezierTo(size.width * .60, size.height * .58, size.width * 1.05, size.height * .48);
+    canvas.drawPath(path, arc);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 void setPasswordDialog({VoidCallback? notEmptyCallback}) async {
