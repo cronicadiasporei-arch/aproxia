@@ -90,8 +90,8 @@ mod basic_app_ui {
                 GIF_SIZE * row_cnt + 2 * border_width,
             );
 
-            // Controls
             nwg::Window::builder()
+                .title("Aproxia")
                 .flags(nwg::WindowFlags::POPUP | nwg::WindowFlags::VISIBLE)
                 .size(window_size)
                 .center(true)
@@ -126,13 +126,11 @@ mod basic_app_ui {
                 .interval(std::time::Duration::from_millis(GIF_DELAY))
                 .build(&mut data.timer)?;
 
-            // Wrap-up
             let ui = BasicAppUi {
                 inner: Rc::new(data),
                 default_handler: Default::default(),
             };
 
-            // Layouts
             nwg::GridLayout::builder()
                 .parent(&ui.window)
                 .spacing(0)
@@ -166,7 +164,6 @@ mod basic_app_ui {
                 .child_item(GridLayoutItem::new(&ui.label_image, 3, 1, 3, 1))
                 .build(&ui.inner_layout)?;
 
-            // Events
             let evt_ui = Rc::downgrade(&ui.inner);
             let handle_events = move |evt, _evt_data, _handle| {
                 if let Some(evt_ui) = evt_ui.upgrade().as_mut() {
@@ -196,7 +193,6 @@ mod basic_app_ui {
     }
 
     impl Drop for BasicAppUi {
-        /// To make sure that everything is freed without issues, the default handler must be unbound.
         fn drop(&mut self) {
             let mut handlers = self.default_handler.borrow_mut();
             for handler in handlers.drain(0..) {
