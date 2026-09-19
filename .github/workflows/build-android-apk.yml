@@ -46,6 +46,9 @@ jobs:
             curl \
             git \
             g++ \
+            gcc-multilib \
+            g++-multilib \
+            libc6-dev-i386 \
             libclang-dev \
             nasm \
             ninja-build \
