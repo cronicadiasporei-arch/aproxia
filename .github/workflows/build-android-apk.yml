@@ -79,6 +79,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_VERSION }}
           targets: aarch64-linux-android
+          components: rustfmt
 
       - name: Setup vcpkg and Build Android Dependencies
         run: |
