@@ -1,0 +1,119 @@
+name: Build Aproxia Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+      - aproxia-v1
+    paths:
+      - 'flutter/**'
+      - 'src/**'
+      - 'Cargo.toml'
+      - '.github/workflows/build-android-apk.yml'
+
+env:
+  RUST_VERSION: "1.75"
+  CARGO_NDK_VERSION: "3.1.2"
+  ANDROID_FLUTTER_VERSION: "3.24.5"
+  NDK_VERSION: "r28c"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+
+jobs:
+  build-apk:
+    name: Build Android APK (ARM64)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            curl \
+            git \
+            g++ \
+            libclang-dev \
+            nasm \
+            ninja-build \
+            openjdk-17-jdk-headless \
+            pkg-config \
+            wget
+
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.ANDROID_FLUTTER_VERSION }}
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-linux-android
+
+      - name: Setup vcpkg and Build Android Dependencies
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git /opt/artifacts/vcpkg
+          cd /opt/artifacts/vcpkg
+          git checkout ${{ env.VCPKG_COMMIT_ID }}
+          ./bootstrap-vcpkg.sh
+          export VCPKG_ROOT=/opt/artifacts/vcpkg
+          cd $GITHUB_WORKSPACE
+          ./flutter/build_android_deps.sh arm64-v8a
+        shell: bash
+
+      - name: Build Rust Core Library (librustdesk.so)
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
+          ./flutter/ndk_arm64.sh
+          mkdir -p ./flutter/android/app/src/main/jniLibs/arm64-v8a
+          cp ./target/aarch64-linux-android/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/arm64-v8a/librustdesk.so
+        shell: bash
+
+      - name: Build Flutter APK
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+        run: |
+          export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
+          # Configure gradle memory and debug signing for standalone APK
+          sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
+          sed -i "s/signingConfigs.release/signingConfigs.debug/g" ./flutter/android/app/build.gradle
+          cd flutter
+          flutter build apk --target-platform android-arm64 --release
+        shell: bash
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aproxia-v1.0.44-arm64-apk
+          path: flutter/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
