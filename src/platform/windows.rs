@@ -1576,7 +1576,7 @@ fn get_after_install(
     ", create_service=get_create_service(&exe))
 }
 
-fn install_bundled_msi(options: &str, path: &str, silent: bool) -> ResultType<bool> {
+fn install_bundled_msi(options: &str, path: &str, _silent: bool) -> ResultType<bool> {
     let current_exe = std::env::current_exe()?;
     let Some(directory) = current_exe.parent() else {
         return Ok(false);
@@ -1590,22 +1590,23 @@ fn install_bundled_msi(options: &str, path: &str, silent: bool) -> ResultType<bo
     let installer_path = installer_str.strip_prefix(r"\\?\").unwrap_or(&installer_str);
 
     let mut parameters = format!(
-        "/i \"{}\" STARTMENUSHORTCUTS={} DESKTOPSHORTCUTS={} PRINTER={} REBOOT=ReallySuppress /norestart",
+        "/i \"{}\" STARTMENUSHORTCUTS={} DESKTOPSHORTCUTS={} STARTUPSHORTCUTS={} PRINTER={} REBOOT=ReallySuppress /norestart /qn LAUNCH_TRAY_APP=N",
         installer_path,
         u8::from(options.contains("startmenu")),
         u8::from(options.contains("desktopicon")),
+        u8::from(options.contains("autostart")),
         u8::from(options.contains("printer")),
     );
     if !path.is_empty() {
         parameters.push_str(&format!(" INSTALLFOLDER=\"{}\"", path.trim_end_matches('\\')));
     }
-    if silent {
-        parameters.push_str(" /qn LAUNCH_TRAY_APP=N");
-    }
     let msiexec = get_system_executable("msiexec.exe")?;
-    let exit_code = run_elevated_and_wait(&msiexec, &parameters, !silent)?;
+    let exit_code = run_elevated_and_wait(&msiexec, &parameters, false)?;
     match exit_code {
-        0 | MSI_EXIT_SUCCESS_REBOOT_INITIATED | MSI_EXIT_SUCCESS_REBOOT_REQUIRED => Ok(true),
+        0 | MSI_EXIT_SUCCESS_REBOOT_INITIATED | MSI_EXIT_SUCCESS_REBOOT_REQUIRED => {
+            run_after_run_cmds(false);
+            Ok(true)
+        }
         code => bail!("MSI installation failed with exit code {code}"),
     }
 }
