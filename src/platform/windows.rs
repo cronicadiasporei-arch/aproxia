@@ -109,7 +109,8 @@ pub use acl::{
 use installer_handoff::run_cmds;
 use installer_shell::{
     embedded_shortcut_commands, embedded_tray_shortcut_commands, escape_nested_cmd_ampersands,
-    shortcut_bytes, validate_install_value,
+    get_system_executable, run_elevated_and_wait, shortcut_bytes, startup_folder,
+    validate_install_value,
 };
 
 pub const FLUTTER_RUNNER_WIN32_WINDOW_CLASS: &'static str = "FLUTTER_RUNNER_WIN32_WINDOW"; // main window, install window
@@ -126,6 +127,7 @@ const MSI_WINDOWS_INSTALLER_VALUE: u32 = 1;
 const MSI_EXIT_SUCCESS_REBOOT_INITIATED: u32 = 1641;
 const MSI_EXIT_SUCCESS_REBOOT_REQUIRED: u32 = 3010;
 const HKLM_PREFIX: &str = "HKEY_LOCAL_MACHINE\\";
+const BUNDLED_MSI_INSTALLER: &str = "Aproxia-Setup-x64.msi";
 
 fn validate_install_app_name(app_name: &str) -> ResultType<()> {
     if app_name.is_empty()
@@ -1477,15 +1479,7 @@ pub fn copy_raw_cmd(src_raw: &str, _raw: &str, _path: &str) -> ResultType<String
 }
 
 pub fn copy_exe_cmd(src_exe: &str, exe: &str, path: &str) -> ResultType<String> {
-    let main_exe = copy_raw_cmd(src_exe, exe, path)?;
-    Ok(format!(
-        "
-        {main_exe}
-        copy /Y \"{ORIGIN_PROCESS_EXE}\" \"{path}\\{broker_exe}\"
-        ",
-        ORIGIN_PROCESS_EXE = win_topmost_window::ORIGIN_PROCESS_EXE,
-        broker_exe = win_topmost_window::INJECTED_PROCESS_EXE,
-    ))
+    copy_raw_cmd(src_exe, exe, path)
 }
 
 #[inline]
@@ -1582,7 +1576,44 @@ fn get_after_install(
     ", create_service=get_create_service(&exe))
 }
 
+fn install_bundled_msi(options: &str, path: &str, silent: bool) -> ResultType<bool> {
+    let current_exe = std::env::current_exe()?;
+    let Some(directory) = current_exe.parent() else {
+        return Ok(false);
+    };
+    let installer = directory.join(BUNDLED_MSI_INSTALLER);
+    if !installer.is_file() {
+        return Ok(false);
+    }
+
+    let installer_str = installer.to_string_lossy();
+    let installer_path = installer_str.strip_prefix(r"\\?\").unwrap_or(&installer_str);
+
+    let mut parameters = format!(
+        "/i \"{}\" STARTMENUSHORTCUTS={} DESKTOPSHORTCUTS={} PRINTER={} REBOOT=ReallySuppress /norestart",
+        installer_path,
+        u8::from(options.contains("startmenu")),
+        u8::from(options.contains("desktopicon")),
+        u8::from(options.contains("printer")),
+    );
+    if !path.is_empty() {
+        parameters.push_str(&format!(" INSTALLFOLDER=\"{}\"", path.trim_end_matches('\\')));
+    }
+    if silent {
+        parameters.push_str(" /qn LAUNCH_TRAY_APP=N");
+    }
+    let msiexec = get_system_executable("msiexec.exe")?;
+    let exit_code = run_elevated_and_wait(&msiexec, &parameters, !silent)?;
+    match exit_code {
+        0 | MSI_EXIT_SUCCESS_REBOOT_INITIATED | MSI_EXIT_SUCCESS_REBOOT_REQUIRED => Ok(true),
+        code => bail!("MSI installation failed with exit code {code}"),
+    }
+}
+
 pub fn install_me(options: &str, path: String, silent: bool, debug: bool) -> ResultType<()> {
+    if install_bundled_msi(options, path.trim_end_matches('\\'), silent)? {
+        return Ok(());
+    }
     // MSI and EXE installations use different registry layouts, so MSI-to-EXE upgrades are not supported.
     let (installed_subkey, _, _, _) = get_install_info();
     if get_windows_installer_state(&installed_subkey)? == Some(true) {
@@ -2124,6 +2155,36 @@ pub fn update_install_option(k: &str, v: &str) -> ResultType<()> {
     let cmds =
         format!("chcp 65001 && reg add HKEY_CLASSES_ROOT\\.{ext} /f /v {k} /t REG_SZ /d \"{v}\"");
     run_cmds(cmds, false, "update_install_option")?;
+    Ok(())
+}
+
+fn aproxia_startup_shortcut_path() -> ResultType<PathBuf> {
+    Ok(startup_folder()?.join(format!("{} Tray.lnk", crate::get_app_name())))
+}
+
+pub fn is_aproxia_autostart_enabled() -> bool {
+    is_msi_installed().unwrap_or(false)
+        && aproxia_startup_shortcut_path()
+            .map(|path| path.is_file())
+            .unwrap_or(false)
+}
+
+pub fn set_aproxia_autostart(enabled: bool) -> ResultType<()> {
+    if !is_msi_installed().unwrap_or(false) {
+        bail!("Autostart is supported only by the MSI installation");
+    }
+    let path = aproxia_startup_shortcut_path()?;
+    if enabled {
+        let exe = std::env::current_exe()?;
+        let exe = exe
+            .to_str()
+            .ok_or_else(|| anyhow!("Installed executable path is not valid Unicode"))?;
+        fs::write(&path, shortcut_bytes(exe, Some("--tray"), Some(exe))?)?;
+    } else if let Err(error) = fs::remove_file(&path) {
+        if error.kind() != io::ErrorKind::NotFound {
+            return Err(error.into());
+        }
+    }
     Ok(())
 }
 
@@ -3889,7 +3950,7 @@ pub fn update_to(file: &str) -> ResultType<()> {
             );
         }
     } else if file.ends_with(".msi") {
-        if let Err(e) = update_me_msi(file, false) {
+        if let Err(e) = update_me_msi(file, true) {
             bail!("Failed to run the update msi: {}", e);
         }
     } else {
@@ -3910,11 +3971,35 @@ pub fn update_to(file: &str) -> ResultType<()> {
 //    `1` and `3` must be done in custom actions.
 //    We need also to handle the command line parsing to find the tray processes.
 pub fn update_me_msi(msi: &str, quiet: bool) -> ResultType<()> {
+    let msi_path = Path::new(msi).canonicalize()?;
+    if !msi_path.is_file() {
+        bail!("MSI update package does not exist: {:?}", msi_path);
+    }
+    let msi_str = msi_path
+        .to_str()
+        .ok_or_else(|| anyhow!("MSI update path is not valid Unicode"))?;
+    if msi_str.contains(['\0', '"', '\r', '\n']) {
+        bail!("MSI update path contains unsupported characters");
+    }
+    // Strip Windows verbatim prefix '\\?\' which causes msiexec/ShellExecute to fail with "Cannot find '\\'"
+    let msi = msi_str.strip_prefix(r"\\?\").unwrap_or(msi_str);
+
+    // Launch msiexec directly. The old handoff passed this command through cmd.exe
+    // and a temporary .bat file, which antivirus products could quarantine and which
+    // exposed Windows Installer's maintenance UI when the update was retried.
     let quiet_args = if quiet { " /qn LAUNCH_TRAY_APP=N" } else { "" };
-    let cmds =
-        format!("chcp 65001 && msiexec /i \"{msi}\"{quiet_args} REBOOT=ReallySuppress /norestart");
-    run_cmds(cmds, false, "update-msi")?;
-    Ok(())
+    let parameters = format!("/i \"{msi}\"{quiet_args} REBOOT=ReallySuppress /norestart");
+    let msiexec = get_system_executable("msiexec.exe")?;
+    let exit_code = run_elevated_and_wait(&msiexec, &parameters, !quiet)?;
+    match exit_code {
+        0 | MSI_EXIT_SUCCESS_REBOOT_INITIATED | MSI_EXIT_SUCCESS_REBOOT_REQUIRED => {
+            if quiet {
+                run_after_run_cmds(false);
+            }
+            Ok(())
+        }
+        code => bail!("MSI update failed with exit code {code}"),
+    }
 }
 
 fn get_import_config(exe: &str) -> String {
@@ -3958,11 +4043,9 @@ sc start {app_name}
 fn run_after_run_cmds(silent: bool) {
     let (_, _, _, exe) = get_install_info();
     if !silent {
-        log::debug!("Spawn new window");
-        allow_err!(std::process::Command::new("cmd")
-            .args(&["/c", "timeout", "/t", "2", "&", &format!("{exe}")])
-            .creation_flags(winapi::um::winbase::CREATE_NO_WINDOW)
-            .spawn());
+        log::debug!("Spawn new Aproxia instance: {}", exe);
+        // Launch main application visibly on desktop
+        allow_err!(std::process::Command::new(&exe).spawn());
     }
     if Config::get_option("stop-service") != "Y" {
         allow_err!(std::process::Command::new(&exe).arg("--tray").spawn());
